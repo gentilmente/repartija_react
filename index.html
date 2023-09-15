@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Repartija</title>
+    <!-- Bootstrap CSS -->
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.2/dist/css/bootstrap.min.css"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css"
+    />
+  </head>
+
+  <body>
+    <div id="root"></div>
+    <!-- React and ReactDOM -->
+    <script
+      crossorigin
+      src="https://unpkg.com/react@18/umd/react.development.js"
+    ></script>
+    <script
+      crossorigin
+      src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"
+    ></script>
+    <!-- Babel compiler for JSX -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/6.26.0/babel.min.js"></script>
+
+    <script type="text/babel">
+      const ThemeContext = React.createContext();
+
+      function LocalStorageManager({ initialData }) {
+        const [data, setData] = React.useState(initialData);
+
+        React.useEffect(() => {
+          const localStorageData = localStorage.getItem("payments");
+          if (localStorageData) {
+            setData(JSON.parse(localStorageData));
+          }
+        }, []);
+
+        React.useEffect(() => {
+          localStorage.setItem("payments", JSON.stringify(data));
+        }, [data]);
+
+        const updateData = (newData) => {
+          setData(newData);
+        };
+
+        return (
+          <div>
+            <App payments={data} updatePayments={updateData} />
+          </div>
+        );
+      }
+
+      //theme Provider
+      function ThemeProvider({ children }) {
+        const [isDarkTheme, setIsDarkTheme] = React.useState(false);
+
+        const toggleTheme = () => {
+          setIsDarkTheme((prevTheme) => !prevTheme);
+        };
+
+        const themeClass = isDarkTheme ? "bg-dark text-light" : "bg-light";
+
+        return (
+          <ThemeContext.Provider
+            value={{ isDarkTheme, toggleTheme, themeClass }}
+          >
+            {children}
+          </ThemeContext.Provider>
+        );
+      }
+
+      // Form component
+      function Form({ payments, setPayments }) {
+        const [name, setName] = React.useState("");
+        const [pay, setPay] = React.useState("");
+
+        function add() {
+          event.preventDefault();
+          if (name) {
+            let uid = payments.length + 1;
+            const payment = {
+              id: uid++,
+              done: false,
+              name: name,
+              pay: isNaN(pay) || pay === "" ? 0 : parseFloat(pay),
+            };
+            setPayments([payment, ...payments]);
+            setName("");
+            setPay("");
+          }
+        }
+
+        return (
+          <form name="form" id="myForm" onSubmit={add}>
+            <input
+              name="name"
+              type="text"
+              className="form-control"
+              placeholder="Nombre"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+            />
+            <input
+              name="payment"
+              type="number"
+              className="form-control"
+              placeholder="¿cuánto gastó?"
+              value={pay}
+              onChange={(e) => setPay(e.target.value)}
+            />
+            <button type="submit" className="btn btn-outline-primary">
+              <span>Agregar al listado</span>
+            </button>
+          </form>
+        );
+      }
+
+      // Results component
+      const Results = ({ payments }) => {
+        const { total, individualPayment, result } = calculate();
+
+        function calculate() {
+          const output = { total: 0, individualPayment: 0, result: [] };
+          const balance = arrangeInitialConditions(output);
+          const { creditors, debtors } = devideList(balance);
+          output.result = creditors.map((creditor) => {
+            debtors.forEach((debtor) => {
+              if (debtor.pay > 0 && creditor.pay < 0) {
+                const payment = getDebtorPayment(debtor, creditor.pay);
+                debtor.pay -= payment;
+                creditor.pay += payment;
+                composeOutputObj(creditor, debtor, payment);
+              }
+            });
+            return creditor;
+          });
+
+          return output;
+        }
+
+        function arrangeInitialConditions(output) {
+          let payers = payments.filter((payment) => payment.done);
+          output.total = payers.reduce(
+            (acc, curr) => acc + +(curr.pay || 0).toFixed(2),
+            0
+          );
+          output.individualPayment = +(output.total / payers.length).toFixed(2);
+          const res = payers.map((payment) => ({
+            ...payment,
+            pay: output.individualPayment - payment.pay,
+          }));
+          return res;
+        }
+
+        function devideList(balance) {
+          return {
+            creditors: balance
+              .filter((entry) => entry.pay < 0)
+              .sort((a, b) => (a.pay > b.pay ? 1 : -1)),
+            debtors: balance
+              .filter((entry) => entry.pay >= 0)
+              .sort((a, b) => (a.pay > b.pay ? -1 : 1)),
+          };
+        }
+
+        function getDebtorPayment(debtor, yetToPay) {
+          const willCreditorStillOwed = debtor.pay + yetToPay < 0;
+          return willCreditorStillOwed ? debtor.pay : yetToPay * -1;
+        }
+
+        function composeOutputObj(creditor, debtor, payment) {
+          const obj = { payment: +payment.toFixed(2), ...debtor };
+          if (creditor.hasOwnProperty("debtors")) {
+            creditor.debtors.push(obj);
+          } else {
+            creditor.debtors = [obj];
+          }
+        }
+
+        return (
+          <div>
+            <h2>Resultado:</h2>
+            <div className="box">
+              <p id="total">
+                total: $<em>{total}</em>
+              </p>
+              <p id="indPay">
+                pago individual: $<em>{individualPayment}</em>
+              </p>
+
+              {result.map((item) => (
+                <div key={item.id}>
+                  A <em> {item.name}</em>, le debe
+                  {item.debtors.length === 1 ? "" : "n"} pagar
+                  {item.debtors.map((d) => (
+                    <div key={d.id} className="debtors">
+                      {d.name + ": $"}
+                      <em>{d.payment}</em>
+                    </div>
+                  ))}
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      };
+
+      // List component
+      function List({ payments, setPayments }) {
+        const handleCheckboxChange = (paymentId) => {
+          const paymentIndex = payments.findIndex(
+            (payment) => payment.id === paymentId
+          );
+
+          if (paymentIndex !== -1) {
+            const updatedPayments = [...payments];
+            updatedPayments[paymentIndex].done =
+              !updatedPayments[paymentIndex].done;
+            setPayments(updatedPayments);
+          }
+        };
+
+        function remove(payment) {
+          setPayments(payments.filter((t) => t !== payment));
+        }
+
+        return (
+          <div className="row">
+            <div className="col ">
+              <h2>Vinieron</h2>
+              {payments !== null &&
+                payments
+                  .filter((t) => !t.done)
+                  .map((payment) => (
+                    <PaymentListItem
+                      key={payment.id}
+                      payment={payment}
+                      onToggle={handleCheckboxChange}
+                      onRemove={remove}
+                    />
+                  ))}
+            </div>
+
+            <div className="col">
+              <h2>Pagan</h2>
+              {payments !== null &&
+                payments
+                  .filter((t) => t.done)
+                  .map((payment) => (
+                    <PaymentListItem
+                      key={payment.id}
+                      payment={payment}
+                      onToggle={handleCheckboxChange}
+                      onRemove={remove}
+                    />
+                  ))}
+            </div>
+          </div>
+        );
+      }
+
+      // Payment List Item
+      function PaymentListItem({ payment, onToggle, onRemove }) {
+        return (
+          <div className="form-check row">
+            <input
+              type="checkbox"
+              className="btn-check"
+              id={payment.id}
+              checked={payment.done}
+              onChange={() => onToggle(payment.id)}
+            />
+            <label className="btn btn-outline-primary" htmlFor={payment.id}>
+              {payment.name + ": " + payment.pay}
+              <button className="btn btn-sm" onClick={() => onRemove(payment)}>
+                <i className="bi bi-trash"></i>
+              </button>
+            </label>
+          </div>
+        );
+      }
+
+      // Main App
+      function App({ payments, updatePayments }) {
+        return (
+          <div className="container">
+            <Form payments={payments} setPayments={updatePayments} />
+            <List payments={payments} setPayments={updatePayments} />
+
+            {payments !== null && payments.filter((p) => p.done).length > 0 && (
+              <Results payments={payments} />
+            )}
+          </div>
+        );
+      }
+
+      /*       // Main App component
+      function App() {
+        const [showForm, setShowForm] = React.useState(false);
+        return (
+          <div className={` container min-vh-100 `}>
+            <h1>
+              <a href="/">Repartija</a>
+            </h1>
+            <p>No mas ebrios haciendo cuentas</p>
+            <div className="row ">
+              <div>
+                <p>
+                  Comenzá y pasá el celular
+                  <br />
+                  hasta que se agreguen todes
+                </p>
+                <button onClick={() => setShowForm(true)}>Start</button>
+                {/*showForm && <Form />* /}
+                <Form />
+              </div>
+            </div>
+          </div>
+        );
+      } */
+
+      // Render the App component to the DOM
+      const container = document.getElementById("root");
+      const root = ReactDOM.createRoot(container);
+
+      const initialPayments = [
+        { id: 1, done: true, name: "Noemi", pay: 40 },
+        { id: 2, done: false, name: "Leti", pay: 600 },
+        { id: 3, done: false, name: "Clarita", pay: 150 },
+        { id: 4, done: false, name: "Taio", pay: 0 },
+        { id: 5, done: false, name: "Juana", pay: 0 },
+        { id: 6, done: true, name: "Gisela", pay: 200 },
+        { id: 7, done: true, name: "Eze", pay: 0 },
+      ];
+
+      root.render(
+        <React.StrictMode>
+          <ThemeProvider>
+            <LocalStorageManager initialData={initialPayments} />
+          </ThemeProvider>
+        </React.StrictMode>
+      );
+    </script>
+  </body>
+</html>
