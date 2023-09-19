@@ -4,15 +4,13 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Repartija</title>
-    <!-- Bootstrap CSS -->
+    <!-- DaisyUI CSS (from CDN) -->
     <link
+      href="https://cdn.jsdelivr.net/npm/daisyui@3.5.1/dist/full.css"
       rel="stylesheet"
-      href="https://cdn.jsdelivr.net/npm/bootstrap@5.2/dist/css/bootstrap.min.css"
+      type="text/css"
     />
-    <link
-      rel="stylesheet"
-      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css"
-    />
+    <script src="https://cdn.tailwindcss.com"></script>
   </head>
 
   <body>
@@ -76,6 +74,11 @@
         );
       }
 
+      //sessions
+      function Sessions() {
+        return <div></div>;
+      }
+
       // Form component
       function Form({ payments, setPayments }) {
         const [name, setName] = React.useState("");
@@ -98,11 +101,11 @@
         }
 
         return (
-          <form name="form" id="myForm" onSubmit={add}>
+          <form name="form" id="myForm" onSubmit={add} className="space-y-4">
             <input
               name="name"
               type="text"
-              className="form-control"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring focus:ring-indigo-500 focus:border-indigo-500"
               placeholder="Nombre"
               value={name}
               onChange={(e) => setName(e.target.value)}
@@ -110,12 +113,15 @@
             <input
               name="payment"
               type="number"
-              className="form-control"
-              placeholder="¿cuánto gastó?"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring focus:ring-indigo-500 focus:border-indigo-500"
+              placeholder="¿Cuánto gastó?"
               value={pay}
               onChange={(e) => setPay(e.target.value)}
             />
-            <button type="submit" className="btn btn-outline-primary">
+            <button
+              type="submit"
+              className="w-full px-4 py-2 text-white bg-indigo-500 rounded-lg hover:bg-indigo-600 focus:ring focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-gray-100 focus:outline-none"
+            >
               <span>Agregar al listado</span>
             </button>
           </form>
@@ -186,23 +192,24 @@
 
         return (
           <div>
-            <h2>Resultado:</h2>
-            <div className="box">
-              <p id="total">
-                total: $<em>{total}</em>
+            <h2 className="text-xl font-semibold">Resultado:</h2>
+            <div className="bg-white rounded-lg shadow-md p-4">
+              <p className="text-gray-700">
+                total: $<em className="text-indigo-500">{total}</em>
               </p>
-              <p id="indPay">
-                pago individual: $<em>{individualPayment}</em>
+              <p className="text-gray-700">
+                pago individual: $
+                <em className="text-indigo-500">{individualPayment}</em>
               </p>
 
               {result.map((item) => (
-                <div key={item.id}>
-                  A <em> {item.name}</em>, le debe
+                <div key={item.id} className="mt-4">
+                  A <em className="text-indigo-500">{item.name}</em>, le debe
                   {item.debtors.length === 1 ? "" : "n"} pagar
                   {item.debtors.map((d) => (
-                    <div key={d.id} className="debtors">
+                    <div key={d.id} className="mt-2">
                       {d.name + ": $"}
-                      <em>{d.payment}</em>
+                      <em className="text-indigo-500">{d.payment}</em>
                     </div>
                   ))}
                 </div>
@@ -232,9 +239,9 @@
         }
 
         return (
-          <div className="row">
-            <div className="col ">
-              <h2>Vinieron</h2>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <h2 className="text-xl font-semibold mb-2">Vinieron</h2>
               {payments !== null &&
                 payments
                   .filter((t) => !t.done)
@@ -248,8 +255,8 @@
                   ))}
             </div>
 
-            <div className="col">
-              <h2>Pagan</h2>
+            <div>
+              <h2 className="text-xl font-semibold mb-2">Pagan</h2>
               {payments !== null &&
                 payments
                   .filter((t) => t.done)
@@ -269,17 +276,20 @@
       // Payment List Item
       function PaymentListItem({ payment, onToggle, onRemove }) {
         return (
-          <div className="form-check row">
+          <div className="flex items-center space-x-4">
             <input
               type="checkbox"
-              className="btn-check"
+              className="btn"
               id={payment.id}
               checked={payment.done}
               onChange={() => onToggle(payment.id)}
             />
-            <label className="btn btn-outline-primary" htmlFor={payment.id}>
+            <label className="text-gray-700" htmlFor={payment.id}>
               {payment.name + ": " + payment.pay}
-              <button className="btn btn-sm" onClick={() => onRemove(payment)}>
+              <button
+                className="text-indigo-500 hover:text-indigo-600 focus:outline-none"
+                onClick={() => onRemove(payment)}
+              >
                 <i className="bi bi-trash"></i>
               </button>
             </label>
