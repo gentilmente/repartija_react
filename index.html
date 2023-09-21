@@ -6,7 +6,7 @@
     <title>Repartija</title>
     <!-- DaisyUI CSS (from CDN) -->
     <link
-      href="https://cdn.jsdelivr.net/npm/daisyui@3.5.1/dist/full.css"
+      href="https://cdn.jsdelivr.net/npm/daisyui@3.7.6/dist/full.css"
       rel="stylesheet"
       type="text/css"
     />
@@ -28,57 +28,6 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/6.26.0/babel.min.js"></script>
 
     <script type="text/babel">
-      const ThemeContext = React.createContext();
-
-      function LocalStorageManager({ initialData }) {
-        const [data, setData] = React.useState(initialData);
-
-        React.useEffect(() => {
-          const localStorageData = localStorage.getItem("payments");
-          if (localStorageData) {
-            setData(JSON.parse(localStorageData));
-          }
-        }, []);
-
-        React.useEffect(() => {
-          localStorage.setItem("payments", JSON.stringify(data));
-        }, [data]);
-
-        const updateData = (newData) => {
-          setData(newData);
-        };
-
-        return (
-          <div>
-            <App payments={data} updatePayments={updateData} />
-          </div>
-        );
-      }
-
-      //theme Provider
-      function ThemeProvider({ children }) {
-        const [isDarkTheme, setIsDarkTheme] = React.useState(false);
-
-        const toggleTheme = () => {
-          setIsDarkTheme((prevTheme) => !prevTheme);
-        };
-
-        const themeClass = isDarkTheme ? "bg-dark text-light" : "bg-light";
-
-        return (
-          <ThemeContext.Provider
-            value={{ isDarkTheme, toggleTheme, themeClass }}
-          >
-            {children}
-          </ThemeContext.Provider>
-        );
-      }
-
-      //sessions
-      function Sessions() {
-        return <div></div>;
-      }
-
       // Form component
       function Form({ payments, setPayments }) {
         const [name, setName] = React.useState("");
@@ -191,25 +140,24 @@
         }
 
         return (
-          <div>
+          <div className="">
             <h2 className="text-xl font-semibold">Resultado:</h2>
-            <div className="bg-white rounded-lg shadow-md p-4">
-              <p className="text-gray-700">
-                total: $<em className="text-indigo-500">{total}</em>
+            <div className="p-4">
+              <p className="">
+                total: $<em>{total}</em>
               </p>
-              <p className="text-gray-700">
-                pago individual: $
-                <em className="text-indigo-500">{individualPayment}</em>
+              <p className="">
+                pago individual: $<em>{individualPayment}</em>
               </p>
 
               {result.map((item) => (
                 <div key={item.id} className="mt-4">
-                  A <em className="text-indigo-500">{item.name}</em>, le debe
+                  A <em>{item.name}</em>, le debe
                   {item.debtors.length === 1 ? "" : "n"} pagar
                   {item.debtors.map((d) => (
                     <div key={d.id} className="mt-2">
                       {d.name + ": $"}
-                      <em className="text-indigo-500">{d.payment}</em>
+                      <em>{d.payment}</em>
                     </div>
                   ))}
                 </div>
@@ -239,8 +187,8 @@
         }
 
         return (
-          <div className="grid grid-cols-2 gap-4">
-            <div>
+          <div className=" grid grid-cols-2 gap-4">
+            <div className="space-y-2">
               <h2 className="text-xl font-semibold mb-2">Vinieron</h2>
               {payments !== null &&
                 payments
@@ -255,7 +203,7 @@
                   ))}
             </div>
 
-            <div>
+            <div className="space-y-2">
               <h2 className="text-xl font-semibold mb-2">Pagan</h2>
               {payments !== null &&
                 payments
@@ -276,33 +224,76 @@
       // Payment List Item
       function PaymentListItem({ payment, onToggle, onRemove }) {
         return (
-          <div className="flex items-center space-x-4">
-            <input
-              type="checkbox"
-              className="btn"
-              id={payment.id}
-              checked={payment.done}
-              onChange={() => onToggle(payment.id)}
-            />
-            <label className="text-gray-700" htmlFor={payment.id}>
-              {payment.name + ": " + payment.pay}
-              <button
-                className="text-indigo-500 hover:text-indigo-600 focus:outline-none"
-                onClick={() => onRemove(payment)}
-              >
-                <i className="bi bi-trash"></i>
-              </button>
+          <div
+            className={`flex items-center btn btn-sm ${
+              payment.done
+                ? "bg-green-500 bg-opacity-50 text-white border-success"
+                : "bg-black bg-opacity-50 text-white "
+            }`}
+          >
+            {/* Checkbox and Content */}
+            <label className="flex-grow text-light-700 flex items-center space-x-2 truncate">
+              <input
+                type="checkbox"
+                className="hidden"
+                id={payment.id}
+                checked={payment.done}
+                onChange={() => onToggle(payment.id)}
+              />
+              <span className="truncate">
+                {payment.name + ": " + payment.pay}
+              </span>
             </label>
+
+            {/* Trash Button */}
+            <button
+              className="hover:text-indigo-600 focus:outline-none flex-shrink-0"
+              onClick={() => onRemove(payment)}
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                strokeWidth={1.5}
+                stroke="currentColor"
+                className="w-6 h-6"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0"
+                />
+              </svg>
+            </button>
           </div>
         );
       }
 
       // Main App
-      function App({ payments, updatePayments }) {
+      function App() {
+        const [payments, setPayments] = React.useState([
+          { id: 1, done: true, name: "Noemi", pay: 40 },
+          { id: 2, done: false, name: "Leti", pay: 600 },
+          { id: 3, done: false, name: "Clarita", pay: 150 },
+          { id: 4, done: false, name: "Taio", pay: 0 },
+          { id: 5, done: false, name: "Juana", pay: 0 },
+          { id: 6, done: true, name: "Gisela", pay: 200 },
+          { id: 7, done: true, name: "Eze", pay: 0 },
+        ]);
+
+        React.useLayoutEffect(() => {
+          document.body.classList.add("bg-cover", "bg-center", "bg-no-repeat");
+          document.body.style.backgroundImage = `url(./dinner.jpg)`;
+          return () => {
+            // Cleanup, if you want to remove the styling when the component unmounts
+            document.body.style.backgroundImage = "";
+          };
+        }, []);
+
         return (
-          <div className="container">
-            <Form payments={payments} setPayments={updatePayments} />
-            <List payments={payments} setPayments={updatePayments} />
+          <div className="container p-4 text-white min-h-screen bg-black bg-opacity-50">
+            <Form payments={payments} setPayments={setPayments} />
+            <List payments={payments} setPayments={setPayments} />
 
             {payments !== null && payments.filter((p) => p.done).length > 0 && (
               <Results payments={payments} />
@@ -310,31 +301,6 @@
           </div>
         );
       }
-
-      /*       // Main App component
-      function App() {
-        const [showForm, setShowForm] = React.useState(false);
-        return (
-          <div className={` container min-vh-100 `}>
-            <h1>
-              <a href="/">Repartija</a>
-            </h1>
-            <p>No mas ebrios haciendo cuentas</p>
-            <div className="row ">
-              <div>
-                <p>
-                  Comenzá y pasá el celular
-                  <br />
-                  hasta que se agreguen todes
-                </p>
-                <button onClick={() => setShowForm(true)}>Start</button>
-                {/*showForm && <Form />* /}
-                <Form />
-              </div>
-            </div>
-          </div>
-        );
-      } */
 
       // Render the App component to the DOM
       const container = document.getElementById("root");
@@ -352,9 +318,7 @@
 
       root.render(
         <React.StrictMode>
-          <ThemeProvider>
-            <LocalStorageManager initialData={initialPayments} />
-          </ThemeProvider>
+          <App />
         </React.StrictMode>
       );
     </script>
