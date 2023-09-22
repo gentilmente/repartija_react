@@ -33,18 +33,20 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/6.26.0/babel.min.js"></script>
 
     <script type="text/babel">
-      const ItemsList = ({ submissions, removeItem }) => (
-        <div className=" display h-[280px] overflow-y-auto">
-          {submissions.map((item, index) => (
-            <ListItem
-              key={index}
-              item={item}
-              index={index}
-              removeItem={removeItem}
-            />
-          ))}
-        </div>
-      );
+      function ItemsList({ submissions, removeItem }) {
+        return (
+          <div>
+            {submissions.map((item, index) => (
+              <ListItem
+                key={index}
+                item={item}
+                index={index}
+                removeItem={removeItem}
+              />
+            ))}
+          </div>
+        );
+      }
 
       function ListItem({ item, removeItem, index }) {
         return (
