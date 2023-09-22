@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Repartija</title>
+    <link
+      href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined"
+      rel="stylesheet"
+    />
+
+    <!-- DaisyUI CSS (from CDN) -->
+    <link
+      href="https://cdn.jsdelivr.net/npm/daisyui@3.7.6/dist/full.css"
+      rel="stylesheet"
+      type="text/css"
+    />
+    <script src="https://cdn.tailwindcss.com"></script>
+  </head>
+
+  <body>
+    <div id="root"></div>
+    <!-- React and ReactDOM -->
+    <script
+      crossorigin
+      src="https://unpkg.com/react@18/umd/react.development.js"
+    ></script>
+    <script
+      crossorigin
+      src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"
+    ></script>
+    <!-- Babel compiler for JSX -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/6.26.0/babel.min.js"></script>
+
+    <script type="text/babel">
+      const ItemsList = ({ submissions, removeItem }) => (
+        <div className=" display h-[280px] overflow-y-auto">
+          {submissions.map((item, index) => (
+            <ListItem
+              key={index}
+              item={item}
+              index={index}
+              removeItem={removeItem}
+            />
+          ))}
+        </div>
+      );
+
+      function ListItem({ item, removeItem, index }) {
+        return (
+          <div className="flex items-center bg-blue-500 p-2 m-2 rounded-lg">
+            <span className="flex-grow text-white">
+              {item.name}: ${item.pay}
+            </span>
+            <button
+              onClick={() => removeItem(index)}
+              className="btn btn-square btn-error"
+            >
+              <span className="material-icons-outlined">delete_outline</span>
+            </button>
+          </div>
+        );
+      }
+
+      function CustomForm({
+        onSubmit,
+        formData,
+        setFormData,
+        handleChange,
+        error,
+      }) {
+        return (
+          <div className="mx-auto">
+            <div className="">
+              <h2 className="text-xl">Submit Your Data</h2>
+              <form onSubmit={onSubmit}>
+                <div className="form-control">
+                  <input
+                    type="text"
+                    name="name"
+                    value={formData.name}
+                    onChange={handleChange}
+                    placeholder="Name"
+                    className="input input-bordered"
+                  />
+                </div>
+
+                <div className="form-control">
+                  <input
+                    type="number"
+                    name="pay"
+                    value={formData.pay}
+                    onChange={handleChange}
+                    placeholder="Pay"
+                    className="input input-bordered"
+                  />
+                </div>
+
+                <div className="form-control mt-4">
+                  <button className="btn btn-primary">Submit</button>
+                </div>
+                {error && <p className="text-red-500 mt-2">{error}</p>}
+              </form>
+            </div>
+          </div>
+        );
+      }
+
+      function App() {
+        const [formData, setFormData] = React.useState({ name: "", pay: "" });
+        const [submissions, setSubmissions] = React.useState([]);
+        const [error, setError] = React.useState(null);
+
+        const handleChange = (e) => {
+          const { name, value } = e.target;
+          setFormData((prevData) => ({ ...prevData, [name]: value }));
+        };
+
+        const handleSubmit = (e) => {
+          e.preventDefault();
+          if (formData.name.trim() === "") {
+            setError("Name field is required"); // Set the error
+            return;
+          }
+          setSubmissions((prevSubmissions) => [...prevSubmissions, formData]);
+          setFormData({ name: "", pay: "" });
+          setError(null);
+        };
+
+        const formProps = {
+          onSubmit: handleSubmit,
+          formData: formData,
+          setFormData: setFormData,
+          handleChange: handleChange,
+          error: error,
+        };
+        const removeItem = (index) => {
+          const updatedSubmissions = [...submissions];
+          updatedSubmissions.splice(index, 1);
+          setSubmissions(updatedSubmissions);
+        };
+
+        return (
+          <div className="flex items-center justify-center">
+            {/* This div represents the mockup and is hidden on mobile and visible on desktop */}
+            <div className="mockup-phone hidden md:inline">
+              <div className="camera"></div>
+              <div className="display">
+                <div className="artboard artboard-demo phone-1">
+                  <div className="container p-4">
+                    <CustomForm {...formProps} />
+
+                    <ItemsList
+                      submissions={submissions}
+                      removeItem={removeItem}
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* This div represents the app content and is visible only on mobile */}
+            <div className="md:hidden container p-4">
+              <CustomForm {...formProps} />
+              <ItemsList submissions={submissions} removeItem={removeItem} />
+            </div>
+          </div>
+        );
+      }
+
+      // Render the App component to the DOM
+      const container = document.getElementById("root");
+      const root = ReactDOM.createRoot(container);
+      root.render(
+        <React.StrictMode>
+          <App />
+        </React.StrictMode>
+      );
+    </script>
+  </body>
+</html>
