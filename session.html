@@ -36,24 +36,22 @@
         return (
           <div className="mt-4 space-y-2">
             {submissions.map((item, index) => (
-              <ListItem
-                key={index}
-                item={item}
-                index={index}
-                removeItem={removeItem}
-              />
+              <ListItem key={index} item={item} removeItem={removeItem} />
             ))}
           </div>
         );
       }
 
-      function ListItem({ item, removeItem, index }) {
+      function ListItem({ item, removeItem }) {
         return (
           <div className="flex items-center btn btn-sm bg-green-500 bg-opacity-50 text-white border-success">
             <span className="flex-grow">
               {item.name}: ${item.pay}
             </span>
-            <button onClick={() => removeItem(index)} className="flex-shrink-0">
+            <button
+              onClick={() => removeItem(item.id)}
+              className="flex-shrink-0"
+            >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 fill="none"
@@ -116,13 +114,8 @@
       }
 
       function App() {
-        const [formData, setFormData] = React.useState({ name: "", pay: "0" });
-        const [submissions, setSubmissions] = React.useState([]);
-        const [error, setError] = React.useState(null);
-        const [sessions, setSessions] = React.useState(loadSessions());
-        const [selectedSession, setSelectedSession] = React.useState(null);
-
-        const mockedSessions = [
+        const defaultFormData = { name: "", pay: "" };
+        const mockedSessions = React.useRef([
           {
             id: 1632501234567,
             createdAt: new Date(2023, 8, 25).toISOString(),
@@ -139,33 +132,53 @@
               { id: 4, name: "Smith", pay: 150 },
             ],
           },
-        ];
+        ]);
+        const [formData, setFormData] = React.useState(defaultFormData);
+        const [submissions, setSubmissions] = React.useState([]);
+        const [error, setError] = React.useState(null);
+        const [sessions, setSessions] = React.useState([]);
+        const [selectedSession, setSelectedSession] = React.useState(null);
 
-        // Load sessions from local storage
-        function loadSessions() {
+        function getSessionsFromLocalStorage() {
           const sessionsJSON = localStorage.getItem("sessions");
-          console.log(sessionsJSON);
-          // If there's data in localStorage, parse and return it
-          if (sessionsJSON !== null) {
-            return JSON.parse(sessionsJSON);
-          }
-
-          // Otherwise, set the mockedSessions to localStorage and return them
-          localStorage.setItem("sessions", JSON.stringify(mockedSessions));
-          return mockedSessions;
+          return sessionsJSON
+            ? JSON.parse(sessionsJSON)
+            : mockedSessions.current;
         }
+
+        function saveSessionsToLocalStorage(sessions) {
+          localStorage.setItem("sessions", JSON.stringify(sessions));
+        }
+
+        const updateSessionData = (updatedSessionData) => {
+          const updatedSessions = sessions.map((session) =>
+            session.id === selectedSession.id
+              ? { ...session, data: updatedSessionData }
+              : session
+          );
+          saveSessionsToLocalStorage(updatedSessions);
+          return updatedSessions;
+        };
+
+        React.useEffect(() => {
+          // This will run only once when the component is mounted
+          const sessionsFromStorage = getSessionsFromLocalStorage();
+          setSessions(sessionsFromStorage);
+
+          // If there's a session in storage, select the first one by default
+          if (sessionsFromStorage && sessionsFromStorage.length > 0) {
+            setSelectedSession(sessionsFromStorage[0]);
+            setSubmissions(sessionsFromStorage[0].data);
+          }
+        }, []);
 
         // When sessions or submissions change, sync to localStorage
         React.useEffect(() => {
           if (selectedSession) {
-            const updatedSessions = sessions.map((session) =>
-              session.id === selectedSession.id
-                ? { ...session, data: submissions }
-                : session
-            );
-            localStorage.setItem("sessions", JSON.stringify(updatedSessions));
+            const updatedSessions = updateSessionData(submissions);
+            setSessions(updatedSessions);
           }
-        }, [sessions, submissions, selectedSession]);
+        }, [submissions, selectedSession]);
 
         const handleChange = (e) => {
           const { name, value } = e.target;
@@ -185,7 +198,7 @@
             ...prevSubmissions,
             newSubmission,
           ]);
-          setFormData({ name: "", pay: "0" });
+          setFormData(defaultFormData);
           setError(null);
         };
 
@@ -216,13 +229,18 @@
           <div className="flex items-center justify-center text-white">
             <div className="row">
               <div className="col">
-                <button onClick={createSession}>Create Session</button>
+                <button className="btn btn-xs" onClick={createSession}>
+                  Create Session
+                </button>
 
                 <ul>
                   {sessions.map((session) => (
                     <li key={session.id}>
-                      <button onClick={() => loadSession(session)}>
-                        Load Session:{" "}
+                      Load Session:
+                      <button
+                        className="btn btn-xs"
+                        onClick={() => loadSession(session)}
+                      >
                         {new Date(session.createdAt).toLocaleDateString()}
                       </button>
                     </li>
