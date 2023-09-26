@@ -35,8 +35,8 @@
       function ItemsList({ submissions, removeItem }) {
         return (
           <div className="mt-4 space-y-2">
-            {submissions.map((item, index) => (
-              <ListItem key={index} item={item} removeItem={removeItem} />
+            {submissions.map((item) => (
+              <ListItem key={item.id} item={item} removeItem={removeItem} />
             ))}
           </div>
         );
@@ -193,7 +193,7 @@
             return;
           }
 
-          const newSubmission = { ...formData, id: Date.now() };
+          const newSubmission = { id: Date.now(), ...formData };
           setSubmissions((prevSubmissions) => [
             ...prevSubmissions,
             newSubmission,

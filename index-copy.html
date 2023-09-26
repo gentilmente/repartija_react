@@ -116,17 +116,71 @@
       }
 
       function App() {
-        const [formData, setFormData] = React.useState({ name: "", pay: "" });
-        const [submissions, setSubmissions] = React.useState([
-          { id: 1, done: true, name: "Noemi", pay: 40 },
-          { id: 2, done: false, name: "Leti", pay: 600 },
-          { id: 3, done: false, name: "Clarita", pay: 150 },
-          { id: 4, done: false, name: "Taio", pay: 0 },
-          { id: 5, done: false, name: "Juana", pay: 0 },
-          { id: 6, done: true, name: "Gisela", pay: 200 },
-          { id: 7, done: true, name: "Eze", pay: 0 },
+        const defaultFormData = { name: "", pay: "" };
+        const mockedSessions = React.useRef([
+          {
+            id: 1632501234567,
+            createdAt: new Date(2023, 8, 25).toISOString(),
+            data: [
+              { id: 1, name: "John", pay: 200 },
+              { id: 2, name: "Doe", pay: 100 },
+            ],
+          },
+          {
+            id: 1632587634567,
+            createdAt: new Date(2023, 8, 26).toISOString(),
+            data: [
+              { id: 3, name: "Anna", pay: 50 },
+              { id: 4, name: "Smith", pay: 150 },
+            ],
+          },
         ]);
+        const [formData, setFormData] = React.useState(defaultFormData);
+        const [submissions, setSubmissions] = React.useState([]);
         const [error, setError] = React.useState(null);
+        const [sessions, setSessions] = React.useState([]);
+        const [selectedSession, setSelectedSession] = React.useState(null);
+
+        function getSessionsFromLocalStorage() {
+          const sessionsJSON = localStorage.getItem("sessions");
+          return sessionsJSON
+            ? JSON.parse(sessionsJSON)
+            : mockedSessions.current;
+        }
+
+        function saveSessionsToLocalStorage(sessions) {
+          localStorage.setItem("sessions", JSON.stringify(sessions));
+        }
+
+        const updateSessionData = (updatedSessionData) => {
+          const updatedSessions = sessions.map((session) =>
+            session.id === selectedSession.id
+              ? { ...session, data: updatedSessionData }
+              : session
+          );
+          saveSessionsToLocalStorage(updatedSessions);
+          return updatedSessions;
+        };
+
+        React.useEffect(() => {
+          // This will run only once when the component is mounted
+          const sessionsFromStorage = getSessionsFromLocalStorage();
+          setSessions(sessionsFromStorage);
+
+          // If there's a session in storage, select the first one by default
+          if (sessionsFromStorage && sessionsFromStorage.length > 0) {
+            setSelectedSession(sessionsFromStorage[0]);
+            setSubmissions(sessionsFromStorage[0].data);
+          }
+        }, []);
+
+        // When sessions or submissions change, sync to localStorage
+        React.useEffect(() => {
+          if (selectedSession) {
+            const updatedSessions = updateSessionData(submissions);
+            setSessions(updatedSessions);
+          }
+        }, [submissions, selectedSession]);
 
         const handleChange = (e) => {
           const { name, value } = e.target;
@@ -135,13 +189,42 @@
 
         const handleSubmit = (e) => {
           e.preventDefault();
+
           if (formData.name.trim() === "") {
-            setError("Name field is required"); // Set the error
+            setError("Name field is required");
             return;
           }
-          setSubmissions((prevSubmissions) => [...prevSubmissions, formData]);
-          setFormData({ name: "", pay: "" });
+
+          const newSubmission = { id: Date.now(), ...formData };
+          setSubmissions((prevSubmissions) => [
+            ...prevSubmissions,
+            newSubmission,
+          ]);
+          setFormData(defaultFormData);
           setError(null);
+        };
+
+        const createSession = () => {
+          const newSession = {
+            id: Date.now(),
+            createdAt: new Date(),
+            data: [],
+          };
+          setSessions((prevSessions) => [...prevSessions, newSession]);
+          setSelectedSession(newSession);
+          setSubmissions([]);
+        };
+
+        const loadSession = (session) => {
+          setSelectedSession(session);
+          setSubmissions(session.data);
+        };
+
+        const removeItem = (itemId) => {
+          const updatedSubmissions = submissions.filter(
+            (item) => item.id !== itemId
+          );
+          setSubmissions(updatedSubmissions);
         };
 
         const formProps = {
@@ -152,35 +235,63 @@
           error: error,
         };
 
-        const removeItem = (index) => {
-          const updatedSubmissions = [...submissions];
-          updatedSubmissions.splice(index, 1);
-          setSubmissions(updatedSubmissions);
-        };
-
         return (
           <div className="flex items-center justify-center text-white ">
-            {/* This div represents the mockup and is hidden on mobile and visible on desktop */}
-            <div className="mockup-phone hidden md:inline">
-              <div className="camera"></div>
-              <div className="display">
-                <div className="artboard artboard-demo phone-1">
-                  <div className="container p-4">
-                    <CustomForm {...formProps} />
+            <div className="row">
+              <div className="col">
+                <button className="btn btn-xs" onClick={createSession}>
+                  Create Session
+                </button>
 
-                    <ItemsList
-                      submissions={submissions}
-                      removeItem={removeItem}
-                    />
+                <ul>
+                  {sessions.map((session) => (
+                    <li key={session.id}>
+                      Load Session:
+                      <button
+                        className="btn btn-xs"
+                        onClick={() => loadSession(session)}
+                      >
+                        {new Date(session.createdAt).toLocaleDateString()}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+
+                {selectedSession && (
+                  <div>
+                    <h2>
+                      Session:{" "}
+                      {new Date(selectedSession.createdAt).toLocaleDateString()}
+                    </h2>
+
+                    {/* This div represents the mockup and is hidden on mobile and visible on desktop */}
+                    <div className="mockup-phone hidden md:inline">
+                      <div className="camera"></div>
+                      <div className="display">
+                        <div className="artboard artboard-demo phone-1">
+                          <div className="container p-4">
+                            <CustomForm {...formProps} />
+
+                            <ItemsList
+                              submissions={submissions}
+                              removeItem={removeItem}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* This div represents the app content and is visible only on mobile */}
+                    <div className="md:hidden container p-4">
+                      <CustomForm {...formProps} />
+                      <ItemsList
+                        submissions={submissions}
+                        removeItem={removeItem}
+                      />
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
-            </div>
-
-            {/* This div represents the app content and is visible only on mobile */}
-            <div className="md:hidden container p-4">
-              <CustomForm {...formProps} />
-              <ItemsList submissions={submissions} removeItem={removeItem} />
             </div>
           </div>
         );
