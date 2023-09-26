@@ -4,7 +4,6 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Repartija</title>
-
     <!-- DaisyUI CSS (from CDN) -->
     <link
       href="https://cdn.jsdelivr.net/npm/daisyui@3.7.6/dist/full.css"
@@ -14,11 +13,8 @@
     <script src="https://cdn.tailwindcss.com"></script>
   </head>
 
-  <body
-    class="bg-cover bg-center bg-no-repeat min-h-screen"
-    style="background-image: url(./dinner.jpg)"
-  >
-    <div id="root" class="min-h-screen bg-black bg-opacity-50"></div>
+  <body>
+    <div id="root"></div>
     <!-- React and ReactDOM -->
     <script
       crossorigin
@@ -32,25 +28,232 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/6.26.0/babel.min.js"></script>
 
     <script type="text/babel">
-      function ItemsList({ submissions, removeItem }) {
+      // Form component
+      function Form({ payments, setPayments }) {
+        const [name, setName] = React.useState("");
+        const [pay, setPay] = React.useState("");
+
+        function add() {
+          event.preventDefault();
+          if (name) {
+            let uid = payments.length + 1;
+            const payment = {
+              id: uid++,
+              done: false,
+              name: name,
+              pay: isNaN(pay) || pay === "" ? 0 : parseFloat(pay),
+            };
+            setPayments([payment, ...payments]);
+            setName("");
+            setPay("");
+          }
+        }
+
         return (
-          <div className="mt-4 space-y-2">
-            {submissions.map((item) => (
-              <ListItem key={item.id} item={item} removeItem={removeItem} />
-            ))}
+          <form
+            name="form"
+            id="myForm"
+            onSubmit={add}
+            className="space-y-4 text-slate-800"
+          >
+            <input
+              name="name"
+              type="text"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring focus:ring-indigo-500 focus:border-indigo-500"
+              placeholder="Nombre"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+            />
+            <input
+              name="payment"
+              type="number"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring focus:ring-indigo-500 focus:border-indigo-500"
+              placeholder="¿Cuánto gastó?"
+              value={pay}
+              onChange={(e) => setPay(e.target.value)}
+            />
+            <button
+              type="submit"
+              className="w-full px-4 py-2 text-white bg-indigo-500 rounded-lg hover:bg-indigo-600 focus:ring focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-gray-100 focus:outline-none"
+            >
+              <span>Agregar al listado</span>
+            </button>
+          </form>
+        );
+      }
+
+      // Results component
+      const Results = ({ payments }) => {
+        const { total, individualPayment, result } = calculate();
+
+        function calculate() {
+          const output = { total: 0, individualPayment: 0, result: [] };
+          const balance = arrangeInitialConditions(output);
+          const { creditors, debtors } = devideList(balance);
+          output.result = creditors.map((creditor) => {
+            debtors.forEach((debtor) => {
+              if (debtor.pay > 0 && creditor.pay < 0) {
+                const payment = getDebtorPayment(debtor, creditor.pay);
+                debtor.pay -= payment;
+                creditor.pay += payment;
+                composeOutputObj(creditor, debtor, payment);
+              }
+            });
+            return creditor;
+          });
+
+          return output;
+        }
+
+        function arrangeInitialConditions(output) {
+          let payers = payments.filter((payment) => payment.done);
+          output.total = payers.reduce(
+            (acc, curr) => acc + +(curr.pay || 0).toFixed(2),
+            0
+          );
+          output.individualPayment = +(output.total / payers.length).toFixed(2);
+          const res = payers.map((payment) => ({
+            ...payment,
+            pay: output.individualPayment - payment.pay,
+          }));
+          return res;
+        }
+
+        function devideList(balance) {
+          return {
+            creditors: balance
+              .filter((entry) => entry.pay < 0)
+              .sort((a, b) => (a.pay > b.pay ? 1 : -1)),
+            debtors: balance
+              .filter((entry) => entry.pay >= 0)
+              .sort((a, b) => (a.pay > b.pay ? -1 : 1)),
+          };
+        }
+
+        function getDebtorPayment(debtor, yetToPay) {
+          const willCreditorStillOwed = debtor.pay + yetToPay < 0;
+          return willCreditorStillOwed ? debtor.pay : yetToPay * -1;
+        }
+
+        function composeOutputObj(creditor, debtor, payment) {
+          const obj = { payment: +payment.toFixed(2), ...debtor };
+          if (creditor.hasOwnProperty("debtors")) {
+            creditor.debtors.push(obj);
+          } else {
+            creditor.debtors = [obj];
+          }
+        }
+
+        return (
+          <div className="">
+            <h2 className="text-xl font-semibold">Resultado:</h2>
+            <div className="p-4">
+              <p className="">
+                total: $<em>{total}</em>
+              </p>
+              <p className="">
+                pago individual: $<em>{individualPayment}</em>
+              </p>
+
+              {result.map((item) => (
+                <div key={item.id} className="mt-4">
+                  A <em>{item.name}</em>, le debe
+                  {item.debtors.length === 1 ? "" : "n"} pagar
+                  {item.debtors.map((d) => (
+                    <div key={d.id} className="mt-2">
+                      {d.name + ": $"}
+                      <em>{d.payment}</em>
+                    </div>
+                  ))}
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      };
+
+      // List component
+      function List({ payments, setPayments }) {
+        const handleCheckboxChange = (paymentId) => {
+          const paymentIndex = payments.findIndex(
+            (payment) => payment.id === paymentId
+          );
+
+          if (paymentIndex !== -1) {
+            const updatedPayments = [...payments];
+            updatedPayments[paymentIndex].done =
+              !updatedPayments[paymentIndex].done;
+            setPayments(updatedPayments);
+          }
+        };
+
+        function remove(payment) {
+          setPayments(payments.filter((t) => t !== payment));
+        }
+
+        return (
+          <div className=" grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <h2 className="text-xl font-semibold mb-2">Vinieron</h2>
+              {payments !== null &&
+                payments
+                  .filter((t) => !t.done)
+                  .map((payment) => (
+                    <PaymentListItem
+                      key={payment.id}
+                      payment={payment}
+                      onToggle={handleCheckboxChange}
+                      onRemove={remove}
+                    />
+                  ))}
+            </div>
+
+            <div className="space-y-2">
+              <h2 className="text-xl font-semibold mb-2">Pagan</h2>
+              {payments !== null &&
+                payments
+                  .filter((t) => t.done)
+                  .map((payment) => (
+                    <PaymentListItem
+                      key={payment.id}
+                      payment={payment}
+                      onToggle={handleCheckboxChange}
+                      onRemove={remove}
+                    />
+                  ))}
+            </div>
           </div>
         );
       }
 
-      function ListItem({ item, removeItem }) {
+      // Payment List Item
+      function PaymentListItem({ payment, onToggle, onRemove }) {
         return (
-          <div className="flex items-center btn btn-sm bg-green-500 bg-opacity-50 text-white border-success">
-            <span className="flex-grow">
-              {item.name}: ${item.pay}
-            </span>
+          <div
+            className={`flex items-center btn btn-sm ${
+              payment.done
+                ? "bg-green-500 bg-opacity-50 text-white border-success"
+                : "bg-black bg-opacity-50 text-white "
+            }`}
+          >
+            {/* Checkbox and Content */}
+            <label className="flex-grow text-light-700 flex items-center space-x-2 truncate">
+              <input
+                type="checkbox"
+                className="hidden"
+                id={payment.id}
+                checked={payment.done}
+                onChange={() => onToggle(payment.id)}
+              />
+              <span className="truncate">
+                {payment.name + ": " + payment.pay}
+              </span>
+            </label>
+
+            {/* Trash Button */}
             <button
-              onClick={() => removeItem(item.id)}
-              className="flex-shrink-0"
+              className="hover:text-indigo-600 focus:outline-none flex-shrink-0"
+              onClick={() => onRemove(payment)}
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -71,203 +274,35 @@
         );
       }
 
-      function CustomForm({
-        onSubmit,
-        formData,
-        setFormData,
-        handleChange,
-        error,
-      }) {
-        return (
-          <div className="mx-auto">
-            <h2 className="text-xl">Submit Your Data</h2>
-            <form onSubmit={onSubmit} className="space-y-4 text-slate-800">
-              <div className="form-control">
-                <input
-                  type="text"
-                  name="name"
-                  value={formData.name}
-                  onChange={handleChange}
-                  placeholder="Name"
-                  className="input input-bordered"
-                />
-              </div>
-
-              <div className="form-control">
-                <input
-                  type="number"
-                  name="pay"
-                  value={formData.pay}
-                  onChange={handleChange}
-                  placeholder="Pay"
-                  className="input input-bordered"
-                />
-              </div>
-
-              <div className="form-control mt-4">
-                <button className="btn btn-primary">Submit</button>
-              </div>
-              {error && <p className="text-red-500 mt-2">{error}</p>}
-            </form>
-          </div>
-        );
-      }
-
+      // Main App
       function App() {
-        const defaultFormData = { name: "", pay: "" };
-        const mockedSessions = React.useRef([
-          {
-            id: 1632501234567,
-            createdAt: new Date(2023, 8, 25).toISOString(),
-            data: [
-              { id: 1, name: "John", pay: 200 },
-              { id: 2, name: "Doe", pay: 100 },
-            ],
-          },
-          {
-            id: 1632587634567,
-            createdAt: new Date(2023, 8, 26).toISOString(),
-            data: [
-              { id: 3, name: "Anna", pay: 50 },
-              { id: 4, name: "Smith", pay: 150 },
-            ],
-          },
+        const [payments, setPayments] = React.useState([
+          { id: 1, done: true, name: "Noemi", pay: 40 },
+          { id: 2, done: false, name: "Leti", pay: 600 },
+          { id: 3, done: false, name: "Clarita", pay: 150 },
+          { id: 4, done: false, name: "Taio", pay: 0 },
+          { id: 5, done: false, name: "Juana", pay: 0 },
+          { id: 6, done: true, name: "Gisela", pay: 200 },
+          { id: 7, done: true, name: "Eze", pay: 0 },
         ]);
-        const [formData, setFormData] = React.useState(defaultFormData);
-        const [submissions, setSubmissions] = React.useState([]);
-        const [error, setError] = React.useState(null);
-        const [sessions, setSessions] = React.useState([]);
-        const [selectedSession, setSelectedSession] = React.useState(null);
 
-        function getSessionsFromLocalStorage() {
-          const sessionsJSON = localStorage.getItem("sessions");
-          return sessionsJSON
-            ? JSON.parse(sessionsJSON)
-            : mockedSessions.current;
-        }
-
-        function saveSessionsToLocalStorage(sessions) {
-          localStorage.setItem("sessions", JSON.stringify(sessions));
-        }
-
-        const updateSessionData = (updatedSessionData) => {
-          const updatedSessions = sessions.map((session) =>
-            session.id === selectedSession.id
-              ? { ...session, data: updatedSessionData }
-              : session
-          );
-          saveSessionsToLocalStorage(updatedSessions);
-          return updatedSessions;
-        };
-
-        React.useEffect(() => {
-          // This will run only once when the component is mounted
-          const sessionsFromStorage = getSessionsFromLocalStorage();
-          setSessions(sessionsFromStorage);
-
-          // If there's a session in storage, select the first one by default
-          if (sessionsFromStorage && sessionsFromStorage.length > 0) {
-            setSelectedSession(sessionsFromStorage[0]);
-            setSubmissions(sessionsFromStorage[0].data);
-          }
+        React.useLayoutEffect(() => {
+          document.body.classList.add("bg-cover", "bg-center", "bg-no-repeat");
+          document.body.style.backgroundImage = `url(./dinner.jpg)`;
+          return () => {
+            // Cleanup, if you want to remove the styling when the component unmounts
+            document.body.style.backgroundImage = "";
+          };
         }, []);
 
-        // When sessions or submissions change, sync to localStorage
-        React.useEffect(() => {
-          if (selectedSession) {
-            const updatedSessions = updateSessionData(submissions);
-            setSessions(updatedSessions);
-          }
-        }, [submissions, selectedSession]);
-
-        const handleChange = (e) => {
-          const { name, value } = e.target;
-          setFormData((prevData) => ({ ...prevData, [name]: value }));
-        };
-
-        const handleSubmit = (e) => {
-          e.preventDefault();
-
-          if (formData.name.trim() === "") {
-            setError("Name field is required");
-            return;
-          }
-
-          const newSubmission = { id: Date.now(), ...formData };
-          setSubmissions((prevSubmissions) => [
-            ...prevSubmissions,
-            newSubmission,
-          ]);
-          setFormData(defaultFormData);
-          setError(null);
-        };
-
-        const createSession = () => {
-          const newSession = {
-            id: Date.now(),
-            createdAt: new Date(),
-            data: [],
-          };
-          setSessions((prevSessions) => [...prevSessions, newSession]);
-          setSelectedSession(newSession);
-          setSubmissions([]);
-        };
-
-        const loadSession = (session) => {
-          setSelectedSession(session);
-          setSubmissions(session.data);
-        };
-
-        const removeItem = (itemId) => {
-          const updatedSubmissions = submissions.filter(
-            (item) => item.id !== itemId
-          );
-          setSubmissions(updatedSubmissions);
-        };
-
         return (
-          <div className="flex items-center justify-center text-white">
-            <div className="row">
-              <div className="col">
-                <button className="btn btn-xs" onClick={createSession}>
-                  Create Session
-                </button>
+          <div className="container p-4 text-white min-h-screen bg-black bg-opacity-50">
+            <Form payments={payments} setPayments={setPayments} />
+            <List payments={payments} setPayments={setPayments} />
 
-                <ul>
-                  {sessions.map((session) => (
-                    <li key={session.id}>
-                      Load Session:
-                      <button
-                        className="btn btn-xs"
-                        onClick={() => loadSession(session)}
-                      >
-                        {new Date(session.createdAt).toLocaleDateString()}
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-
-                {selectedSession && (
-                  <div>
-                    <h2>
-                      Session:{" "}
-                      {new Date(selectedSession.createdAt).toLocaleDateString()}
-                    </h2>
-                    <CustomForm
-                      onSubmit={handleSubmit}
-                      formData={formData}
-                      setFormData={setFormData}
-                      handleChange={handleChange}
-                      error={error}
-                    />
-                    <ItemsList
-                      submissions={submissions}
-                      removeItem={removeItem}
-                    />
-                  </div>
-                )}
-              </div>
-            </div>
+            {payments !== null && payments.filter((p) => p.done).length > 0 && (
+              <Results payments={payments} />
+            )}
           </div>
         );
       }
@@ -275,6 +310,7 @@
       // Render the App component to the DOM
       const container = document.getElementById("root");
       const root = ReactDOM.createRoot(container);
+
       root.render(
         <React.StrictMode>
           <App />
