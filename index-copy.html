@@ -35,25 +35,23 @@
       function ItemsList({ submissions, removeItem }) {
         return (
           <div className="mt-4 space-y-2">
-            {submissions.map((item, index) => (
-              <ListItem
-                key={index}
-                item={item}
-                index={index}
-                removeItem={removeItem}
-              />
+            {submissions.map((item) => (
+              <ListItem key={item.id} item={item} removeItem={removeItem} />
             ))}
           </div>
         );
       }
 
-      function ListItem({ item, removeItem, index }) {
+      function ListItem({ item, removeItem }) {
         return (
           <div className="flex items-center btn btn-sm bg-green-500 bg-opacity-50 text-white border-success">
             <span className="flex-grow">
               {item.name}: ${item.pay}
             </span>
-            <button onClick={() => removeItem(index)} className="flex-shrink-0">
+            <button
+              onClick={() => removeItem(item.id)}
+              className="flex-shrink-0"
+            >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 fill="none"
@@ -227,16 +225,8 @@
           setSubmissions(updatedSubmissions);
         };
 
-        const formProps = {
-          onSubmit: handleSubmit,
-          formData: formData,
-          setFormData: setFormData,
-          handleChange: handleChange,
-          error: error,
-        };
-
         return (
-          <div className="flex items-center justify-center text-white ">
+          <div className="flex items-center justify-center text-white">
             <div className="row">
               <div className="col">
                 <button className="btn btn-xs" onClick={createSession}>
@@ -263,32 +253,17 @@
                       Session:{" "}
                       {new Date(selectedSession.createdAt).toLocaleDateString()}
                     </h2>
-
-                    {/* This div represents the mockup and is hidden on mobile and visible on desktop */}
-                    <div className="mockup-phone hidden md:inline">
-                      <div className="camera"></div>
-                      <div className="display">
-                        <div className="artboard artboard-demo phone-1">
-                          <div className="container p-4">
-                            <CustomForm {...formProps} />
-
-                            <ItemsList
-                              submissions={submissions}
-                              removeItem={removeItem}
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* This div represents the app content and is visible only on mobile */}
-                    <div className="md:hidden container p-4">
-                      <CustomForm {...formProps} />
-                      <ItemsList
-                        submissions={submissions}
-                        removeItem={removeItem}
-                      />
-                    </div>
+                    <CustomForm
+                      onSubmit={handleSubmit}
+                      formData={formData}
+                      setFormData={setFormData}
+                      handleChange={handleChange}
+                      error={error}
+                    />
+                    <ItemsList
+                      submissions={submissions}
+                      removeItem={removeItem}
+                    />
                   </div>
                 )}
               </div>
