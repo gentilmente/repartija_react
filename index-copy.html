@@ -32,6 +32,17 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/6.26.0/babel.min.js"></script>
 
     <script type="text/babel">
+      function MockupPhone({ children }) {
+        return (
+          <div className="mockup-phone hidden md:inline">
+            <div className="camera"></div>
+            <div className="display">
+              <div className="artboard artboard-demo phone-1">{children}</div>
+            </div>
+          </div>
+        );
+      }
+
       function ItemsList({ submissions, removeItem }) {
         return (
           <div className="mt-4 space-y-2">
@@ -225,49 +236,57 @@
           setSubmissions(updatedSubmissions);
         };
 
+        const formProps = {
+          onSubmit: handleSubmit,
+          formData: formData,
+          setFormData: setFormData,
+          handleChange: handleChange,
+          error: error,
+        };
+
         return (
-          <div className="flex items-center justify-center text-white">
-            <div className="row">
-              <div className="col">
-                <button className="btn btn-xs" onClick={createSession}>
-                  Create Session
-                </button>
-
-                <ul>
-                  {sessions.map((session) => (
-                    <li key={session.id}>
-                      Load Session:
-                      <button
-                        className="btn btn-xs"
-                        onClick={() => loadSession(session)}
-                      >
-                        {new Date(session.createdAt).toLocaleDateString()}
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-
-                {selectedSession && (
-                  <div>
-                    <h2>
-                      Session:{" "}
-                      {new Date(selectedSession.createdAt).toLocaleDateString()}
-                    </h2>
-                    <CustomForm
-                      onSubmit={handleSubmit}
-                      formData={formData}
-                      setFormData={setFormData}
-                      handleChange={handleChange}
-                      error={error}
-                    />
+          <div className="flex flex-col min-h-screen items-center justify-center text-white">
+            {" "}
+            <button className="btn btn-xs" onClick={createSession}>
+              Create Session
+            </button>
+            <ul>
+              {sessions.map((session) => (
+                <li key={session.id}>
+                  Load Session:
+                  <button
+                    className="btn btn-xs"
+                    onClick={() => loadSession(session)}
+                  >
+                    {new Date(session.createdAt).toLocaleDateString()}
+                  </button>
+                </li>
+              ))}
+            </ul>
+            {selectedSession && (
+              <div>
+                {/* <h2>
+                  Selected session:{" "}
+                  {new Date(selectedSession.createdAt).toLocaleDateString()}
+                </h2> */}
+                <MockupPhone>
+                  <div className="container p-4">
+                    <CustomForm {...formProps} />
                     <ItemsList
                       submissions={submissions}
                       removeItem={removeItem}
                     />
                   </div>
-                )}
+                </MockupPhone>
+                <div className="md:hidden container p-4">
+                  <CustomForm {...formProps} />
+                  <ItemsList
+                    submissions={submissions}
+                    removeItem={removeItem}
+                  />
+                </div>
               </div>
-            </div>
+            )}
           </div>
         );
       }

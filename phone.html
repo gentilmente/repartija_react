@@ -14,11 +14,8 @@
     <script src="https://cdn.tailwindcss.com"></script>
   </head>
 
-  <body
-    class="bg-cover bg-center bg-no-repeat min-h-screen"
-    style="background-image: url(./dinner.jpg)"
-  >
-    <div id="root" class="min-h-screen bg-black bg-opacity-50"></div>
+  <body>
+    <div id="root"></div>
     <!-- React and ReactDOM -->
     <script
       crossorigin
@@ -35,23 +32,25 @@
       function ItemsList({ submissions, removeItem }) {
         return (
           <div className="mt-4 space-y-2">
-            {submissions.map((item) => (
-              <ListItem key={item.id} item={item} removeItem={removeItem} />
+            {submissions.map((item, index) => (
+              <ListItem
+                key={index}
+                item={item}
+                index={index}
+                removeItem={removeItem}
+              />
             ))}
           </div>
         );
       }
 
-      function ListItem({ item, removeItem }) {
+      function ListItem({ item, removeItem, index }) {
         return (
           <div className="flex items-center btn btn-sm bg-green-500 bg-opacity-50 text-white border-success">
             <span className="flex-grow">
               {item.name}: ${item.pay}
             </span>
-            <button
-              onClick={() => removeItem(item.id)}
-              className="flex-shrink-0"
-            >
+            <button onClick={() => removeItem(index)} className="flex-shrink-0">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 fill="none"
@@ -225,47 +224,73 @@
           setSubmissions(updatedSubmissions);
         };
 
+        const formProps = {
+          onSubmit: handleSubmit,
+          formData: formData,
+          setFormData: setFormData,
+          handleChange: handleChange,
+          error: error,
+        };
+
         return (
-          <div className="flex items-center justify-center text-white">
-            <div className="row">
-              <div className="col">
-                <button className="btn btn-xs" onClick={createSession}>
-                  Create Session
-                </button>
+          <div className="min-h-screen flex flex-col justify-center text-white bg-gradient-to-r from-violet-500 to-fuchsia-500">
+            {/* This div represents the mockup and is hidden on mobile and visible on desktop */}
 
-                <ul>
-                  {sessions.map((session) => (
-                    <li key={session.id}>
-                      Load Session:
-                      <button
-                        className="btn btn-xs"
-                        onClick={() => loadSession(session)}
-                      >
-                        {new Date(session.createdAt).toLocaleDateString()}
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-
-                {selectedSession && (
-                  <div>
-                    <h2>
-                      Session:{" "}
-                      {new Date(selectedSession.createdAt).toLocaleDateString()}
-                    </h2>
-                    <CustomForm
-                      onSubmit={handleSubmit}
-                      formData={formData}
-                      setFormData={setFormData}
-                      handleChange={handleChange}
-                      error={error}
-                    />
-                    <ItemsList
-                      submissions={submissions}
-                      removeItem={removeItem}
-                    />
+            <div className="grid items-center grid-cols-1 gap-4 mx-auto max-w-7xl lg:grid-cols-2 xl:grid-cols-3 ">
+              <div className="hidden md:inline">
+                <div>
+                  <p class="mb-1 text-base font-medium md:text-xl">
+                    The Ultimate Bill Splitting Solution
+                  </p>
+                  <h2 class="mb-6 text-3xl font-bold md:leading-tight md:text-4xl md:mb-4">
+                    Get started building your internal tool in minutes
+                  </h2>
+                  <p class="mb-6 text-sm font-semibold lg:text-base">
+                    Gone are the days of complex calculations, awkward
+                    conversations, and IOUs. With Repartija, splitting the bill
+                    is as easy as a single tap. Whether you're dining out,
+                    traveling with friends, or sharing household expenses, we've
+                    got you covered.
+                  </p>
+                  <div class="flex flex-col mb-2 space-x-0 space-y-2 sm:flex-row sm:space-x-2 sm:space-y-0">
+                    <a
+                      href="#"
+                      class="w-full shadow btn btn-primary btn-lg sm:w-auto"
+                    >
+                      Get started
+                    </a>
+                    <a href="#" class="w-full btn btn-link btn-lg sm:w-auto">
+                      Schedule a demo
+                    </a>
                   </div>
-                )}
+                </div>
+              </div>
+              <div className="mockup-phone hidden md:inline">
+                <div className="camera"></div>
+                <div className="display ">
+                  <div className="artboard artboard-demo phone-1 bg-cover bg-center bg-no-repeat bg-[url('./dinner.jpg')]">
+                    <div className="w-full h-full bg-black bg-opacity-50 text-white p-4">
+                      <div className="">
+                        <p>hola gato</p>
+                        <CustomForm {...formProps} />
+
+                        <ItemsList
+                          submissions={submissions}
+                          removeItem={removeItem}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* This div represents the app content and is visible only on mobile */}
+            <div className="md:hidden containerbg-cover bg-center bg-no-repeat bg-[url('./dinner.jpg')]">
+              <div className="min-h-screen p-4 bg-black bg-opacity-50">
+                <p>hola gato</p>
+                <CustomForm {...formProps} />
+                <ItemsList submissions={submissions} removeItem={removeItem} />
               </div>
             </div>
           </div>
