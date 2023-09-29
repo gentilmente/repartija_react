@@ -108,9 +108,7 @@
         );
       }
 
-      function NavBar(props) {
-        const sessionProps = props.sessionProps;
-
+      function NavBar({ sessionProps }) {
         return (
           <div className="navbar bg-base-100 text-slate-800">
             <div className="navbar-start">
@@ -179,7 +177,7 @@
         );
       }
 
-      function LandingContent(props) {
+      function LandingContent() {
         return (
           <div className="hidden md:inline p-4">
             <p className="mb-1 text-base font-medium md:text-xl">
