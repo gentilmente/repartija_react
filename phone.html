@@ -29,28 +29,158 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/6.26.0/babel.min.js"></script>
 
     <script type="text/babel">
+      function MenuItems({ menuStyles }) {
+        return (
+          <ul
+            tabIndex={0}
+            //className=menu menu-sm dropdown-content mt-3 z-[1] p-2 shadow bg-base-100 rounded-box w-52
+            className={`${menuStyles}`}
+          >
+            <li>
+              <a>Item 1</a>
+            </li>
+            <li>
+              <a>Item 2</a>
+            </li>
+            <li>
+              <a>Item 3</a>
+            </li>
+          </ul>
+        );
+      }
+      function NavBar() {
+        return (
+          <div className="navbar bg-base-100 text-slate-800">
+            <div className="navbar-start">
+              <div className="dropdown">
+                <label tabIndex={0} className="btn btn-ghost lg:hidden">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-5 w-5"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                      d="M4 6h16M4 12h8m-8 6h16"
+                    />
+                  </svg>
+                </label>
+                <MenuItems
+                  menuStyles={
+                    "menu menu-sm dropdown-content mt-3 z-[1] p-2 shadow bg-base-100 rounded-box w-52"
+                  }
+                />
+              </div>
+              <a className="btn btn-ghost normal-case text-xl">Repartija</a>
+            </div>
+            <div className="navbar-center hidden lg:flex">
+              <MenuItems menuStyles={"menu menu-horizontal px-1"} />
+            </div>
+            <div className="navbar-end"></div>
+          </div>
+        );
+      }
+
+      function MobileApp(props) {
+        return (
+          <div>
+            {/* Button to create a new session */}
+            <button className="btn btn-xs" onClick={props.createSession}>
+              Create Session
+            </button>
+
+            {/* List of sessions */}
+            <ul>
+              {props.sessions.map((session) => (
+                <li key={session.id}>
+                  Load Session:
+                  <button
+                    className="btn btn-xs"
+                    onClick={() => props.loadSession(session)}
+                  >
+                    {new Date(session.createdAt).toLocaleDateString()}
+                  </button>
+                </li>
+              ))}
+            </ul>
+            <CustomForm {...props} />
+            <ItemsList
+              submissions={props.submissions}
+              removeItem={props.removeItem}
+            />
+          </div>
+        );
+      }
+
+      function MockupPhone({ children }) {
+        return (
+          <div className="mockup-phone hidden md:inline">
+            <div className="camera"></div>
+            <div className="display">
+              <div className="artboard artboard-demo phone-1 bg-cover bg-center bg-no-repeat bg-[url('./dinner.jpg')]">
+                <div className="w-full h-full bg-black bg-opacity-50 text-white p-4">
+                  {children}
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      }
+
+      function LandingContent() {
+        return (
+          <div className="hidden md:inline">
+            <p className="mb-1 text-base font-medium md:text-xl">
+              The Ultimate Bill Splitting Solution
+            </p>
+            <h2 className="mb-6 text-3xl font-bold md:leading-tight md:text-4xl md:mb-4">
+              Get started building your internal tool in minutes
+            </h2>
+            <p className="mb-6 text-sm font-semibold lg:text-base">
+              Gone are the days of complex calculations, awkward conversations,
+              and IOUs. With Repartija, splitting the bill is as easy as a
+              single tap. Whether you're dining out, traveling with friends, or
+              sharing household expenses, we've got you covered.
+            </p>
+            <div className="flex flex-col mb-2 space-x-0 space-y-2 sm:flex-row sm:space-x-2 sm:space-y-0">
+              <a
+                href="#"
+                className="w-full shadow btn btn-primary btn-lg sm:w-auto"
+              >
+                Get started
+              </a>
+              <a href="#" className="w-full btn btn-link btn-lg sm:w-auto">
+                Schedule a demo
+              </a>
+            </div>
+          </div>
+        );
+      }
+
       function ItemsList({ submissions, removeItem }) {
         return (
           <div className="mt-4 space-y-2">
-            {submissions.map((item, index) => (
-              <ListItem
-                key={index}
-                item={item}
-                index={index}
-                removeItem={removeItem}
-              />
+            {submissions.map((item) => (
+              <ListItem key={item.id} item={item} removeItem={removeItem} />
             ))}
           </div>
         );
       }
 
-      function ListItem({ item, removeItem, index }) {
+      function ListItem({ item, removeItem }) {
         return (
           <div className="flex items-center btn btn-sm bg-green-500 bg-opacity-50 text-white border-success">
             <span className="flex-grow">
               {item.name}: ${item.pay}
             </span>
-            <button onClick={() => removeItem(index)} className="flex-shrink-0">
+            <button
+              onClick={() => removeItem(item.id)}
+              className="flex-shrink-0"
+            >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 fill="none"
@@ -233,64 +363,33 @@
         };
 
         return (
-          <div className="min-h-screen flex flex-col justify-center text-white bg-gradient-to-r from-violet-500 to-fuchsia-500">
-            {/* This div represents the mockup and is hidden on mobile and visible on desktop */}
-
-            <div className="grid items-center grid-cols-1 gap-4 mx-auto max-w-7xl lg:grid-cols-2 xl:grid-cols-3 ">
-              <div className="hidden md:inline">
-                <div>
-                  <p class="mb-1 text-base font-medium md:text-xl">
-                    The Ultimate Bill Splitting Solution
-                  </p>
-                  <h2 class="mb-6 text-3xl font-bold md:leading-tight md:text-4xl md:mb-4">
-                    Get started building your internal tool in minutes
-                  </h2>
-                  <p class="mb-6 text-sm font-semibold lg:text-base">
-                    Gone are the days of complex calculations, awkward
-                    conversations, and IOUs. With Repartija, splitting the bill
-                    is as easy as a single tap. Whether you're dining out,
-                    traveling with friends, or sharing household expenses, we've
-                    got you covered.
-                  </p>
-                  <div class="flex flex-col mb-2 space-x-0 space-y-2 sm:flex-row sm:space-x-2 sm:space-y-0">
-                    <a
-                      href="#"
-                      class="w-full shadow btn btn-primary btn-lg sm:w-auto"
-                    >
-                      Get started
-                    </a>
-                    <a href="#" class="w-full btn btn-link btn-lg sm:w-auto">
-                      Schedule a demo
-                    </a>
-                  </div>
+          <div className="min-h-screen t-0 flex flex-col text-white bg-gradient-to-r from-violet-500 to-fuchsia-500">
+            <NavBar />
+            <div className="grid items-center grid-cols-1 gap-4 mx-auto p-4 max-w-7xl lg:grid-cols-2 xl:grid-cols-3 ">
+              <LandingContent />
+              <MockupPhone>
+                <div className="container p-4">
+                  <MobileApp
+                    {...formProps}
+                    submissions={submissions}
+                    removeItem={removeItem}
+                    sessions={sessions}
+                    createSession={createSession}
+                    loadSession={loadSession}
+                  />
                 </div>
-              </div>
-              <div className="mockup-phone hidden md:inline">
-                <div className="camera"></div>
-                <div className="display ">
-                  <div className="artboard artboard-demo phone-1 bg-cover bg-center bg-no-repeat bg-[url('./dinner.jpg')]">
-                    <div className="w-full h-full bg-black bg-opacity-50 text-white p-4">
-                      <div className="">
-                        <p>hola gato</p>
-                        <CustomForm {...formProps} />
-
-                        <ItemsList
-                          submissions={submissions}
-                          removeItem={removeItem}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
+              </MockupPhone>
             </div>
-
-            {/* This div represents the app content and is visible only on mobile */}
             <div className="md:hidden containerbg-cover bg-center bg-no-repeat bg-[url('./dinner.jpg')]">
               <div className="min-h-screen p-4 bg-black bg-opacity-50">
-                <p>hola gato</p>
-                <CustomForm {...formProps} />
-                <ItemsList submissions={submissions} removeItem={removeItem} />
+                <MobileApp
+                  {...formProps}
+                  submissions={submissions}
+                  removeItem={removeItem}
+                  sessions={sessions}
+                  createSession={createSession}
+                  loadSession={loadSession}
+                />
               </div>
             </div>
           </div>
