@@ -77,6 +77,7 @@
         sessions,
         loadSession,
         menuStyles,
+        selectedSession,
       }) {
         return (
           <ul className={`${menuStyles}`}>
@@ -86,7 +87,10 @@
                   <PlusIcon createSession={createSession} />
                 </div>
                 <div className="tooltip tooltip-right" data-tip="remove">
-                  <TrashIcon removeItem={removeSession} item={""} />
+                  <TrashIcon
+                    removeItem={removeSession}
+                    item={selectedSession}
+                  />
                 </div>
               </div>
             </li>
@@ -105,8 +109,7 @@
       }
 
       function NavBar(props) {
-        const { sessions, removeSession, createSession, loadSession } =
-          props.sessionProps;
+        const sessionProps = props.sessionProps;
 
         return (
           <div className="navbar bg-base-100 text-slate-800">
@@ -132,13 +135,7 @@
                       Sessions
                     </summary>
 
-                    <Sessions
-                      sessions={sessions}
-                      createSession={createSession}
-                      removeSession={removeSession}
-                      loadSession={loadSession}
-                      menuStyles={"menu px-1"}
-                    />
+                    <Sessions {...sessionProps} menuStyles="menu px-1" />
                   </details>
                 </li>
               </ul>
@@ -407,6 +404,7 @@
 
         const sessionProps = {
           sessions: sessions,
+          selectedSession: selectedSession,
           createSession: createSession,
           removeSession: removeSession,
           loadSession: loadSession,
