@@ -29,9 +29,9 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/6.26.0/babel.min.js"></script>
 
     <script type="text/babel">
-      function PlusIcon({ createSession }) {
+      function IconButton({ onClick, iconPath }) {
         return (
-          <button onClick={createSession}>
+          <button onClick={onClick}>
             <svg
               xmlns="http://www.w3.org/2000/svg"
               fill="none"
@@ -40,36 +40,20 @@
               stroke="currentColor"
               className="w-6 h-6"
             >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M12 4.5v15m7.5-7.5h-15"
-              />
+              <path strokeLinecap="round" strokeLinejoin="round" d={iconPath} />
             </svg>
           </button>
         );
       }
 
-      function TrashIcon({ removeItem, item }) {
-        return (
-          <button onClick={() => removeItem(item.id)}>
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-              strokeWidth={1.5}
-              stroke="currentColor"
-              className="w-6 h-6"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0"
-              />
-            </svg>
-          </button>
-        );
-      }
+      const ICON_PATHS = {
+        plus: "M12 4.5v15m7.5-7.5h-15",
+        trash:
+          "M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0",
+        calendar:
+          "M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5m-9-6h.008v.008H12v-.008zM12 15h.008v.008H12V15zm0 2.25h.008v.008H12v-.008zM9.75 15h.008v.008H9.75V15zm0 2.25h.008v.008H9.75v-.008zM7.5 15h.008v.008H7.5V15zm0 2.25h.008v.008H7.5v-.008zm6.75-4.5h.008v.008h-.008v-.008zm0 2.25h.008v.008h-.008V15zm0 2.25h.008v.008h-.008v-.008zm2.25-4.5h.008v.008H16.5v-.008zm0 2.25h.008v.008H16.5V15z",
+        // ... any other SVG paths
+      };
 
       function Sessions({
         createSession,
@@ -78,18 +62,37 @@
         loadSession,
         menuStyles,
         selectedSession,
+        closeDetails,
       }) {
+        const handleLoadSession = (session) => {
+          loadSession(session);
+          closeDetails(); // Close the details dropdown when a session is loaded
+        };
+
+        const handleCreateSession = () => {
+          createSession();
+          closeDetails(); // Close the details dropdown when a session is loaded
+        };
+
+        const handleRemoveSession = (sessionId) => {
+          removeSession(sessionId);
+          closeDetails(); // Close the details dropdown when a session is loaded
+        };
         return (
           <ul className={`${menuStyles}`}>
             <li>
-              <div className="flex justify-center bg-base-200">
+              <div className="flex justify-evenly bg-base-200">
                 <div className="tooltip tooltip-left" data-tip="add">
-                  <PlusIcon createSession={createSession} />
+                  <IconButton
+                    iconPath={ICON_PATHS.plus}
+                    onClick={handleCreateSession}
+                  />
                 </div>
+
                 <div className="tooltip tooltip-right" data-tip="remove">
-                  <TrashIcon
-                    removeItem={removeSession}
-                    item={selectedSession}
+                  <IconButton
+                    iconPath={ICON_PATHS.trash}
+                    onClick={() => handleRemoveSession(selectedSession.id)}
                   />
                 </div>
               </div>
@@ -97,8 +100,12 @@
             {sessions.map((session) => (
               <li key={session.id}>
                 <button
-                  className="flex justify-center items-center space-x-6 hover:text-white focus:bg-gray-700 focus:text-white hover:bg-gray-700 text-gray-400 rounded px-3 py-2  w-full md:w-52"
-                  onClick={() => loadSession(session)}
+                  className={`flex justify-center items-center space-x-6 hover:text-white focus:bg-gray-700 focus:text-white hover:bg-gray-700 text-gray-400 rounded px-3 py-2 w-52 ${
+                    selectedSession.id === session.id
+                      ? "bg-gray-700 text-white"
+                      : ""
+                  }`}
+                  onClick={() => handleLoadSession(session)}
                 >
                   {new Date(session.createdAt).toLocaleDateString()}
                 </button>
@@ -109,31 +116,39 @@
       }
 
       function NavBar({ sessionProps }) {
+        const [detailsOpen, setDetailsOpen] = React.useState(false);
+        const detailsRef = React.useRef(null);
+
+        React.useEffect(() => {
+          const detailsElement = detailsRef.current;
+
+          const handleToggle = () => {
+            setDetailsOpen(detailsElement.open); // Set state based on native open attribute
+          };
+
+          detailsElement.addEventListener("toggle", handleToggle);
+
+          return () => {
+            detailsElement.removeEventListener("toggle", handleToggle);
+          };
+        }, []);
+
         return (
           <div className="navbar bg-base-100 text-slate-800">
             <div className="navbar-start">
               <ul className="menu menu-horizontal px-1">
                 <li>
-                  <details>
+                  <details ref={detailsRef} open={detailsOpen}>
                     <summary>
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        strokeWidth={1.5}
-                        stroke="currentColor"
-                        className="w-6 h-6"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5m-9-6h.008v.008H12v-.008zM12 15h.008v.008H12V15zm0 2.25h.008v.008H12v-.008zM9.75 15h.008v.008H9.75V15zm0 2.25h.008v.008H9.75v-.008zM7.5 15h.008v.008H7.5V15zm0 2.25h.008v.008H7.5v-.008zm6.75-4.5h.008v.008h-.008v-.008zm0 2.25h.008v.008h-.008V15zm0 2.25h.008v.008h-.008v-.008zm2.25-4.5h.008v.008H16.5v-.008zm0 2.25h.008v.008H16.5V15z"
-                        />
-                      </svg>
+                      <IconButton iconPath={ICON_PATHS.calendar} />
                       Sessions
                     </summary>
 
-                    <Sessions {...sessionProps} menuStyles="menu px-1" />
+                    <Sessions
+                      {...sessionProps}
+                      menuStyles="menu px-1"
+                      closeDetails={() => setDetailsOpen(false)}
+                    />
                   </details>
                 </li>
               </ul>
@@ -223,7 +238,10 @@
             <span className="flex-grow">
               {item.name}: ${item.pay}
             </span>
-            <TrashIcon removeItem={removeItem} item={item} />
+            <IconButton
+              iconPath={ICON_PATHS.trash}
+              onClick={() => removeItem(item.id)}
+            />
           </div>
         );
       }
@@ -371,8 +389,23 @@
         };
 
         const removeSession = (itemId) => {
-          const updatedList = sessions.filter((item) => item.id !== itemId);
-          setSessions(updatedList);
+          setSessions((prevSessions) => {
+            const updatedList = prevSessions.filter(
+              (item) => item.id !== itemId
+            );
+
+            // If the removed session is the current selected session
+            if (selectedSession && selectedSession.id === itemId) {
+              const newSelectedSession = updatedList[0] || null; // select the first session or null
+
+              // Ensure this state change takes effect
+              setSelectedSession(newSelectedSession);
+              setSubmissions(
+                (newSelectedSession && newSelectedSession.data) || []
+              );
+            }
+            return updatedList;
+          });
         };
 
         const loadSession = (session) => {
