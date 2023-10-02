@@ -62,7 +62,22 @@
         loadSession,
         menuStyles,
         selectedSession,
+        closeDetails,
       }) {
+        const handleLoadSession = (session) => {
+          loadSession(session);
+          closeDetails(); // Close the details dropdown when a session is loaded
+        };
+
+        const handleCreateSession = () => {
+          createSession();
+          closeDetails(); // Close the details dropdown when a session is loaded
+        };
+
+        const handleRemoveSession = (sessionId) => {
+          removeSession(sessionId);
+          closeDetails(); // Close the details dropdown when a session is loaded
+        };
         return (
           <ul className={`${menuStyles}`}>
             <li>
@@ -70,14 +85,14 @@
                 <div className="tooltip tooltip-left" data-tip="add">
                   <IconButton
                     iconPath={ICON_PATHS.plus}
-                    onClick={createSession}
+                    onClick={handleCreateSession}
                   />
                 </div>
 
                 <div className="tooltip tooltip-right" data-tip="remove">
                   <IconButton
                     iconPath={ICON_PATHS.trash}
-                    onClick={() => removeSession(selectedSession.id)}
+                    onClick={() => handleRemoveSession(selectedSession.id)}
                   />
                 </div>
               </div>
@@ -85,8 +100,12 @@
             {sessions.map((session) => (
               <li key={session.id}>
                 <button
-                  className="flex justify-center items-center space-x-6 hover:text-white focus:bg-gray-700 focus:text-white hover:bg-gray-700 text-gray-400 rounded px-3 py-2 w-52"
-                  onClick={() => loadSession(session)}
+                  className={`flex justify-center items-center space-x-6 hover:text-white focus:bg-gray-700 focus:text-white hover:bg-gray-700 text-gray-400 rounded px-3 py-2 w-52 ${
+                    selectedSession.id === session.id
+                      ? "bg-gray-700 text-white"
+                      : ""
+                  }`}
+                  onClick={() => handleLoadSession(session)}
                 >
                   {new Date(session.createdAt).toLocaleDateString()}
                 </button>
@@ -97,18 +116,39 @@
       }
 
       function NavBar({ sessionProps }) {
+        const [detailsOpen, setDetailsOpen] = React.useState(false);
+        const detailsRef = React.useRef(null);
+
+        React.useEffect(() => {
+          const detailsElement = detailsRef.current;
+
+          const handleToggle = () => {
+            setDetailsOpen(detailsElement.open); // Set state based on native open attribute
+          };
+
+          detailsElement.addEventListener("toggle", handleToggle);
+
+          return () => {
+            detailsElement.removeEventListener("toggle", handleToggle);
+          };
+        }, []);
+
         return (
           <div className="navbar bg-base-100 text-slate-800">
             <div className="navbar-start">
               <ul className="menu menu-horizontal px-1">
                 <li>
-                  <details>
+                  <details ref={detailsRef} open={detailsOpen}>
                     <summary>
                       <IconButton iconPath={ICON_PATHS.calendar} />
                       Sessions
                     </summary>
 
-                    <Sessions {...sessionProps} menuStyles="menu px-1" />
+                    <Sessions
+                      {...sessionProps}
+                      menuStyles="menu px-1"
+                      closeDetails={() => setDetailsOpen(false)}
+                    />
                   </details>
                 </li>
               </ul>
@@ -349,8 +389,23 @@
         };
 
         const removeSession = (itemId) => {
-          const updatedList = sessions.filter((item) => item.id !== itemId);
-          setSessions(updatedList);
+          setSessions((prevSessions) => {
+            const updatedList = prevSessions.filter(
+              (item) => item.id !== itemId
+            );
+
+            // If the removed session is the current selected session
+            if (selectedSession && selectedSession.id === itemId) {
+              const newSelectedSession = updatedList[0] || null; // select the first session or null
+
+              // Ensure this state change takes effect
+              setSelectedSession(newSelectedSession);
+              setSubmissions(
+                (newSelectedSession && newSelectedSession.data) || []
+              );
+            }
+            return updatedList;
+          });
         };
 
         const loadSession = (session) => {
