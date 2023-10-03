@@ -463,7 +463,7 @@
             // Ensure value is a number and within expected range if needed
             let sanitizedValue = parseFloat(value);
             if (isNaN(sanitizedValue)) {
-              sanitizedValue = ""; // or handle this situation accordingly
+              sanitizedValue = 0; // or handle this situation accordingly
             }
 
             setFormData((prevData) => ({
