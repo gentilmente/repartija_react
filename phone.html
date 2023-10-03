@@ -29,6 +29,106 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/6.26.0/babel.min.js"></script>
 
     <script type="text/babel">
+      // Results component
+      const Results = ({ payments }) => {
+        const [total, setTotal] = React.useState(0);
+        const [individualPayment, setIndividualPayment] = React.useState(0);
+        const [result, setResult] = React.useState([]);
+
+        React.useEffect(() => {
+          const { total, individualPayment, result } = calculate();
+          setTotal(total);
+          setIndividualPayment(individualPayment);
+          setResult(result);
+        }, [payments]);
+
+        function calculate() {
+          const output = { total: 0, individualPayment: 0, result: [] };
+          const balance = arrangeInitialConditions(output);
+          const { creditors, debtors } = divideList(balance);
+          output.result = creditors.map((creditor) => {
+            debtors.forEach((debtor) => {
+              if (debtor.pay > 0 && creditor.pay < 0) {
+                const payment = getDebtorPayment(debtor, creditor.pay);
+                debtor.pay -= payment;
+                creditor.pay += payment;
+                composeOutputObj(creditor, debtor, payment);
+              }
+            });
+            return creditor;
+          });
+
+          return output;
+        }
+
+        function arrangeInitialConditions(output) {
+          let payers = payments.filter((payment) => payment.done);
+          output.total = payers.reduce(
+            (acc, curr) => acc + (Number(curr.pay) || 0),
+            0
+          );
+          output.individualPayment = +(output.total / payers.length);
+          const res = payers.map((payment) => ({
+            ...payment,
+            pay: output.individualPayment - (Number(payment.pay) || 0),
+          }));
+          return res;
+        }
+
+        function divideList(balance) {
+          return {
+            creditors: balance
+              .filter((entry) => entry.pay < 0)
+              .sort((a, b) => (a.pay > b.pay ? 1 : -1)),
+            debtors: balance
+              .filter((entry) => entry.pay >= 0)
+              .sort((a, b) => (a.pay > b.pay ? -1 : 1)),
+          };
+        }
+
+        function getDebtorPayment(debtor, yetToPay) {
+          const willCreditorStillOwed = debtor.pay + yetToPay < 0;
+          return willCreditorStillOwed ? debtor.pay : yetToPay * -1;
+        }
+
+        function composeOutputObj(creditor, debtor, payment) {
+          const obj = { payment: +payment.toFixed(2), ...debtor };
+          if (creditor.hasOwnProperty("debtors")) {
+            creditor.debtors.push(obj);
+          } else {
+            creditor.debtors = [obj];
+          }
+        }
+
+        return (
+          <div className="">
+            <h2 className="text-xl font-semibold">Resultado:</h2>
+            <div className="p-4">
+              <p className="">
+                total: $<em>{isNaN(total) ? "Error in Total" : total}</em>
+              </p>
+              <p className="">
+                pago individual: $
+                <em>{isNaN(individualPayment) ? "0" : individualPayment}</em>
+              </p>
+
+              {result.map((item) => (
+                <div key={item.id} className="mt-4">
+                  A <em>{item.name}</em>, le debe
+                  {item.debtors.length === 1 ? "" : "n"} pagar
+                  {item.debtors.map((d) => (
+                    <div key={d.id} className="mt-2">
+                      {d.name + ": $"}
+                      <em>{d.payment}</em>
+                    </div>
+                  ))}
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      };
+
       function IconButton({ onClick, iconPath }) {
         return (
           <button onClick={onClick}>
@@ -173,6 +273,7 @@
             />
 
             <ItemsList submissions={submissions} removeItem={removeItem} />
+            <Results payments={submissions} />
           </div>
         );
       }
@@ -289,22 +390,22 @@
       }
 
       function App() {
-        const defaultFormData = { name: "", pay: "" };
+        const defaultFormData = { name: "", pay: "", done: true };
         const mockedSessions = React.useRef([
           {
             id: 1632501234567,
             createdAt: new Date(2023, 8, 25).toISOString(),
             data: [
-              { id: 1, name: "John", pay: 200 },
-              { id: 2, name: "Doe", pay: 100 },
+              { id: 1, name: "John", pay: 200, done: true },
+              { id: 2, name: "Doe", pay: 100, done: true },
             ],
           },
           {
             id: 1632587634567,
             createdAt: new Date(2023, 8, 26).toISOString(),
             data: [
-              { id: 3, name: "Anna", pay: 50 },
-              { id: 4, name: "Smith", pay: 150 },
+              { id: 3, name: "Anna", pay: 50, done: true },
+              { id: 4, name: "Smith", pay: 150, done: true },
             ],
           },
         ]);
@@ -357,7 +458,21 @@
 
         const handleChange = (e) => {
           const { name, value } = e.target;
-          setFormData((prevData) => ({ ...prevData, [name]: value }));
+
+          if (name === "pay") {
+            // Ensure value is a number and within expected range if needed
+            let sanitizedValue = parseFloat(value);
+            if (isNaN(sanitizedValue)) {
+              sanitizedValue = ""; // or handle this situation accordingly
+            }
+
+            setFormData((prevData) => ({
+              ...prevData,
+              [name]: sanitizedValue,
+            }));
+          } else {
+            setFormData((prevData) => ({ ...prevData, [name]: value }));
+          }
         };
 
         const handleSubmit = (e) => {
