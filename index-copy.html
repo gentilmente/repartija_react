@@ -100,62 +100,273 @@
           },
         });
 
-      function LanguageSwitcher() {
-        const { i18n } = ReactI18next.useTranslation();
-        const changeLanguage = (lng) => {
-          i18n.changeLanguage(lng);
+      function Results() {
+        const { t } = ReactI18next.useTranslation();
+        const [total, setTotal] = React.useState(0);
+        const [individualPayment, setIndividualPayment] = React.useState(0);
+        const [result, setResult] = React.useState([]);
+        const { submissions: payments } = React.useContext(AppContext);
+
+        React.useEffect(() => {
+          const { total, individualPayment, result } = calculate();
+          setTotal(total);
+          setIndividualPayment(individualPayment);
+          setResult(result);
+        }, [payments]);
+
+        function calculate() {
+          const output = { total: 0, individualPayment: 0, result: [] };
+          const balance = arrangeInitialConditions(output);
+          const { creditors, debtors } = divideList(balance);
+          output.result = creditors.map((creditor) => {
+            debtors.forEach((debtor) => {
+              if (debtor.pay > 0 && creditor.pay < 0) {
+                const payment = getDebtorPayment(debtor, creditor.pay);
+                debtor.pay -= payment;
+                creditor.pay += payment;
+                composeOutputObj(creditor, debtor, payment);
+              }
+            });
+            return creditor;
+          });
+
+          return output;
+        }
+
+        function arrangeInitialConditions(output) {
+          let payers = payments.filter((payment) => payment.done);
+          output.total = payers.reduce(
+            (acc, curr) => acc + (Number(curr.pay) || 0),
+            0
+          );
+          output.individualPayment = +(output.total / payers.length);
+          const res = payers.map((payment) => ({
+            ...payment,
+            pay: output.individualPayment - (Number(payment.pay) || 0),
+          }));
+          return res;
+        }
+
+        function divideList(balance) {
+          return {
+            creditors: balance
+              .filter((entry) => entry.pay < 0)
+              .sort((a, b) => (a.pay > b.pay ? 1 : -1)),
+            debtors: balance
+              .filter((entry) => entry.pay >= 0)
+              .sort((a, b) => (a.pay > b.pay ? -1 : 1)),
+          };
+        }
+
+        function getDebtorPayment(debtor, yetToPay) {
+          const willCreditorStillOwed = debtor.pay + yetToPay < 0;
+          return willCreditorStillOwed ? debtor.pay : yetToPay * -1;
+        }
+
+        function composeOutputObj(creditor, debtor, payment) {
+          const obj = { payment: +payment.toFixed(2), ...debtor };
+          if (creditor.hasOwnProperty("debtors")) {
+            creditor.debtors.push(obj);
+          } else {
+            creditor.debtors = [obj];
+          }
+        }
+
+        return (
+          <div className='mt-4'>
+            <h2 className='text-xl'>{t("result")}:</h2>
+            <div className='p-4'>
+              <p className='text-lg'>
+                {t("total")}: $
+                <em className='text-xl text-emerald-300 font-bold'>
+                  {isNaN(total) ? "Error in Total" : total}
+                </em>
+              </p>
+              <p className=''>
+                {t("individualPayment")}: $
+                <em className='text-xl text-emerald-300 font-bold'>
+                  {isNaN(individualPayment) ? "0" : individualPayment}
+                </em>
+              </p>
+
+              {result.map((item) => (
+                <div key={item.id} className='mt-4'>
+                  {t("to")}
+                  <em className='text-xl text-emerald-300 font-bold'>
+                    {item.name},
+                  </em>
+                  {t("thesePPLMust")}
+                  {item.debtors.length === 1 ? "" : "n"} pagar
+                  {item.debtors.map((d) => (
+                    <div key={d.id} className='ms-2 mt-1'>
+                      {d.name + ": $"}
+                      <em className='text-xl text-emerald-300 font-bold'>
+                        {d.payment}
+                      </em>
+                    </div>
+                  ))}
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      }
+
+      function ListItem({ item, removeItem }) {
+        return (
+          <div className='flex items-center btn btn-sm bg-green-500 bg-opacity-50 text-white border-success'>
+            <span className='flex-grow'>
+              {item.name}: ${item.pay}
+            </span>
+            <IconButton
+              iconPath={ICON_PATHS.trash}
+              onClick={() => removeItem(item.id)}
+            />
+          </div>
+        );
+      }
+
+      function ItemsList() {
+        const { submissions, removeSubmission } = React.useContext(AppContext);
+        return (
+          <div className='mt-4 space-y-2'>
+            {submissions.map((item) => (
+              <ListItem
+                key={item.id}
+                item={item}
+                removeItem={removeSubmission}
+              />
+            ))}
+          </div>
+        );
+      }
+
+      function CustomForm() {
+        const { t } = ReactI18next.useTranslation();
+        const defaultFormData = { name: "", pay: "", done: true };
+        const [formData, setFormData] = React.useState(defaultFormData);
+        const [error, setError] = React.useState(null);
+        const { setSubmissions } = React.useContext(AppContext);
+
+        const handleChange = (e) => {
+          const { name, value } = e.target;
+
+          if (name === "pay") {
+            // Ensure value is a number and within expected range if needed
+            let sanitizedValue = parseFloat(value);
+            if (isNaN(sanitizedValue)) {
+              sanitizedValue = 0; // or handle this situation accordingly
+            }
+
+            setFormData((prevData) => ({
+              ...prevData,
+              [name]: sanitizedValue,
+            }));
+          } else {
+            setFormData((prevData) => ({ ...prevData, [name]: value }));
+          }
         };
-        const isActiveLanguage = (lang) => {
-          return i18n.language === lang ? "active" : "";
+
+        const handleSubmit = (e) => {
+          e.preventDefault();
+
+          if (formData.name.trim() === "") {
+            setError("Name field is required");
+            return;
+          }
+
+          const newSubmission = { id: Date.now(), ...formData };
+          setSubmissions((prevSubmissions) => [
+            ...prevSubmissions,
+            newSubmission,
+          ]);
+          setFormData(defaultFormData);
+          setError(null);
         };
 
         return (
-          <div title="Change Language" className="dropdown dropdown-end">
-            <div tabIndex="0" className="btn btn-ghost normal-case">
-              <IconButton iconPath={ICON_PATHS.lang} />
-              <IconButton iconPath={ICON_PATHS.chevron} />
+          <div className='mx-auto mt-1'>
+            <h2 className='text-xl'>{t("submitData")}</h2>
+            <form onSubmit={handleSubmit} className='space-y-4 text-slate-800'>
+              <div className='form-control'>
+                <input
+                  type='text'
+                  name='name'
+                  value={formData.name}
+                  onChange={handleChange}
+                  placeholder={t("name")}
+                  className='input input-bordered'
+                />
+              </div>
+
+              <div className='form-control'>
+                <input
+                  type='number'
+                  name='pay'
+                  value={formData.pay}
+                  onChange={handleChange}
+                  placeholder={t("pay")}
+                  className='input input-bordered'
+                />
+              </div>
+
+              <div className='form-control mt-4'>
+                <button className='btn btn-primary'>{t("submit")}</button>
+              </div>
+              {error && <p className='text-red-500 mt-2'>{error}</p>}
+            </form>
+          </div>
+        );
+      }
+
+      function MobileApp() {
+        return (
+          <div className='p-4'>
+            <CustomForm />
+            <ItemsList />
+            <Results />
+          </div>
+        );
+      }
+
+      function MockupPhone({ children }) {
+        return (
+          <div className='mockup-phone hidden md:inline mt-4'>
+            <div className='camera'></div>
+            <div className='display'>
+              <div className="artboard artboard-demo phone-1 bg-cover bg-center bg-no-repeat bg-[url('./dinner.jpg')]">
+                <div className='w-full h-full bg-black bg-opacity-50 text-white'>
+                  {children}
+                </div>
+              </div>
             </div>
-            <div className="dropdown-content bg-base-200 text-base-content rounded-box top-px mt-16 w-56 overflow-y-auto shadow">
-              <ul className="menu menu-sm gap-1" tabIndex="0">
-                <li>
-                  <button
-                    className={isActiveLanguage("en")}
-                    onClick={() => changeLanguage("en")}
-                  >
-                    <span className="badge badge-sm badge-outline !pl-1.5 !pr-1 pt-px font-mono !text-[.6rem] font-bold tracking-widest opacity-50">
-                      EN
-                    </span>
-                    English
-                  </button>
-                </li>
-                <li>
-                  <button
-                    className={isActiveLanguage("es")}
-                    onClick={() => changeLanguage("es")}
-                  >
-                    <span className="badge badge-sm badge-outline !pl-1.5 !pr-1 pt-px font-mono !text-[.6rem] font-bold tracking-widest opacity-50">
-                      ES
-                    </span>
-                    Español
-                  </button>
-                </li>
-                <li>
-                  <button>
-                    <span className="badge badge-sm badge-outline !pl-1.5 !pr-1 pt-px font-mono !text-[.6rem] font-bold tracking-widest opacity-50">
-                      FR
-                    </span>
-                    Français
-                  </button>
-                </li>
-                <li>
-                  <button>
-                    <span className="badge badge-sm badge-outline !pl-1.5 !pr-1 pt-px font-mono !text-[.6rem] font-bold tracking-widest opacity-50">
-                      PT
-                    </span>
-                    Português
-                  </button>
-                </li>
-              </ul>
+          </div>
+        );
+      }
+
+      function LandingContent() {
+        const { t } = ReactI18next.useTranslation();
+        return (
+          <div className='hidden md:inline p-4'>
+            <p className='mb-1 text-base font-medium md:text-xl'>
+              {t("solution")}
+            </p>
+            <h2 className='mb-6 text-3xl font-bold md:leading-tight md:text-4xl md:mb-4'>
+              {t("subtitle")}
+            </h2>
+            <p className='mb-6 text-sm font-semibold lg:text-base'>
+              {t("description")}
+            </p>
+            <div className='flex flex-col mb-2 space-x-0 space-y-2 sm:flex-row sm:space-x-2 sm:space-y-0'>
+              <a
+                href='#'
+                className='w-full shadow btn btn-primary btn-lg sm:w-auto'
+              >
+                {t("getStarted")}
+              </a>
+              <a href='#' className='w-full btn btn-link btn-lg sm:w-auto'>
+                {t("scheduleDemo")}
+              </a>
             </div>
           </div>
         );
@@ -165,14 +376,14 @@
         return (
           <button onClick={onClick}>
             <svg
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
+              xmlns='http://www.w3.org/2000/svg'
+              fill='none'
+              viewBox='0 0 24 24'
               strokeWidth={1.5}
-              stroke="currentColor"
-              className="w-6 h-6"
+              stroke='currentColor'
+              className='w-6 h-6'
             >
-              <path strokeLinecap="round" strokeLinejoin="round" d={iconPath} />
+              <path strokeLinecap='round' strokeLinejoin='round' d={iconPath} />
             </svg>
           </button>
         );
@@ -187,6 +398,199 @@
         lang: "M10.5 21l5.25-11.25L21 21m-9-3h7.5M3 5.621a48.474 48.474 0 016-.371m0 0c1.12 0 2.233.038 3.334.114M9 5.25V3m3.334 2.364C11.176 10.658 7.69 15.08 3 17.502m9.334-12.138c.896.061 1.785.147 2.666.257m-4.589 8.495a18.023 18.023 0 01-3.827-5.802",
         chevron: "M19.5 8.25l-7.5 7.5-7.5-7.5",
       };
+
+      function Sessions({ closeDetails }) {
+        const {
+          createSession,
+          removeSession,
+          sessions,
+          loadSession,
+          selectedSession,
+        } = React.useContext(AppContext);
+
+        const handleLoadSession = (session) => {
+          loadSession(session);
+          closeDetails(); // Close the details dropdown when a session is loaded
+        };
+
+        const handleCreateSession = () => {
+          createSession();
+          closeDetails(); // Close the details dropdown when a session is loaded
+        };
+
+        const handleRemoveSession = (sessionId) => {
+          removeSession(sessionId);
+          closeDetails(); // Close the details dropdown when a session is loaded
+        };
+
+        return (
+          <ul className='menu px-1'>
+            <li>
+              <div className='flex justify-evenly bg-base-200'>
+                <div className='tooltip tooltip-left' data-tip='add'>
+                  <IconButton
+                    iconPath={ICON_PATHS.plus}
+                    onClick={handleCreateSession}
+                  />
+                </div>
+
+                <div className='tooltip tooltip-right' data-tip='remove'>
+                  <IconButton
+                    iconPath={ICON_PATHS.trash}
+                    onClick={() => handleRemoveSession(selectedSession.id)}
+                  />
+                </div>
+              </div>
+            </li>
+            {sessions.map((session) => (
+              <li key={session.id}>
+                <button
+                  className={`flex justify-center items-center space-x-6 hover:text-white focus:bg-gray-700 focus:text-white hover:bg-gray-700 text-gray-400 rounded px-3 py-2 w-52 ${
+                    selectedSession.id === session.id
+                      ? "bg-gray-700 text-white"
+                      : ""
+                  }`}
+                  onClick={() => handleLoadSession(session)}
+                >
+                  {new Date(session.createdAt).toLocaleDateString()}
+                </button>
+              </li>
+            ))}
+          </ul>
+        );
+      }
+
+      function LanguageSwitcher() {
+        const { i18n } = ReactI18next.useTranslation();
+        const changeLanguage = (lng) => {
+          i18n.changeLanguage(lng);
+        };
+        const isActiveLanguage = (lang) => {
+          return i18n.language === lang ? "active" : "";
+        };
+
+        return (
+          <div title='Change Language' className='dropdown dropdown-end'>
+            <div tabIndex='0' className='btn btn-ghost normal-case'>
+              <IconButton iconPath={ICON_PATHS.lang} />
+              <IconButton iconPath={ICON_PATHS.chevron} />
+            </div>
+            <div className='dropdown-content bg-base-200 text-base-content rounded-box top-px mt-16 w-56 overflow-y-auto shadow'>
+              <ul className='menu menu-sm gap-1' tabIndex='0'>
+                <li>
+                  <button
+                    className={isActiveLanguage("en")}
+                    onClick={() => changeLanguage("en")}
+                  >
+                    <span className='badge badge-sm badge-outline !pl-1.5 !pr-1 pt-px font-mono !text-[.6rem] font-bold tracking-widest opacity-50'>
+                      EN
+                    </span>
+                    English
+                  </button>
+                </li>
+                <li>
+                  <button
+                    className={isActiveLanguage("es")}
+                    onClick={() => changeLanguage("es")}
+                  >
+                    <span className='badge badge-sm badge-outline !pl-1.5 !pr-1 pt-px font-mono !text-[.6rem] font-bold tracking-widest opacity-50'>
+                      ES
+                    </span>
+                    Español
+                  </button>
+                </li>
+                <li>
+                  <button>
+                    <span className='badge badge-sm badge-outline !pl-1.5 !pr-1 pt-px font-mono !text-[.6rem] font-bold tracking-widest opacity-50'>
+                      FR
+                    </span>
+                    Français
+                  </button>
+                </li>
+                <li>
+                  <button>
+                    <span className='badge badge-sm badge-outline !pl-1.5 !pr-1 pt-px font-mono !text-[.6rem] font-bold tracking-widest opacity-50'>
+                      PT
+                    </span>
+                    Português
+                  </button>
+                </li>
+              </ul>
+            </div>
+          </div>
+        );
+      }
+
+      function NavBar() {
+        const { t } = ReactI18next.useTranslation();
+        const [detailsOpen, setDetailsOpen] = React.useState(false);
+        const detailsRef = React.useRef(null);
+
+        React.useEffect(() => {
+          const detailsElement = detailsRef.current;
+
+          const handleToggle = () => {
+            setDetailsOpen(detailsElement.open); // Set state based on native open attribute
+          };
+
+          detailsElement.addEventListener("toggle", handleToggle);
+
+          return () => {
+            detailsElement.removeEventListener("toggle", handleToggle);
+          };
+        }, []);
+
+        return (
+          <div className='navbar bg-base-100 text-slate-800'>
+            <div className='navbar-start'>
+              <ul className='menu menu-horizontal px-1'>
+                <li>
+                  <details ref={detailsRef} open={detailsOpen}>
+                    <summary>
+                      <IconButton iconPath={ICON_PATHS.calendar} />
+                      {t("sessions")}
+                    </summary>
+
+                    <Sessions closeDetails={() => setDetailsOpen(false)} />
+                  </details>
+                </li>
+              </ul>
+            </div>
+            <div className='navbar-center'>
+              <a
+                className='text-5xl '
+                style={{ fontFamily: "Chicle, cursive" }}
+              >
+                Repartija
+              </a>
+            </div>
+            <div className='navbar-end '>
+              <LanguageSwitcher />
+            </div>
+          </div>
+        );
+      }
+
+      function App() {
+        return (
+          <AppProvider>
+            <div className='min-h-screen t-0 flex flex-col text-white bg-gradient-to-r from-violet-500 to-fuchsia-500'>
+              <NavBar />
+              <div className='grid items-center grid-cols-1 gap-4 mx-auto max-w-7xl lg:grid-cols-2 xl:grid-cols-3 '>
+                <LandingContent />
+                <MockupPhone>
+                  <MobileApp />
+                </MockupPhone>
+              </div>
+              <div className="md:hidden bg-cover bg-center bg-no-repeat bg-[url('./dinner.jpg')]">
+                <div className='min-h-screen bg-black bg-opacity-50'>
+                  <MobileApp />
+                </div>
+              </div>
+            </div>
+          </AppProvider>
+        );
+      }
 
       const AppContext = React.createContext();
 
@@ -303,411 +707,6 @@
 
         return (
           <AppContext.Provider value={value}>{children}</AppContext.Provider>
-        );
-      }
-
-      function Sessions({ closeDetails }) {
-        const {
-          createSession,
-          removeSession,
-          sessions,
-          loadSession,
-          selectedSession,
-        } = React.useContext(AppContext);
-
-        const handleLoadSession = (session) => {
-          loadSession(session);
-          closeDetails(); // Close the details dropdown when a session is loaded
-        };
-
-        const handleCreateSession = () => {
-          createSession();
-          closeDetails(); // Close the details dropdown when a session is loaded
-        };
-
-        const handleRemoveSession = (sessionId) => {
-          removeSession(sessionId);
-          closeDetails(); // Close the details dropdown when a session is loaded
-        };
-
-        return (
-          <ul className="menu px-1">
-            <li>
-              <div className="flex justify-evenly bg-base-200">
-                <div className="tooltip tooltip-left" data-tip="add">
-                  <IconButton
-                    iconPath={ICON_PATHS.plus}
-                    onClick={handleCreateSession}
-                  />
-                </div>
-
-                <div className="tooltip tooltip-right" data-tip="remove">
-                  <IconButton
-                    iconPath={ICON_PATHS.trash}
-                    onClick={() => handleRemoveSession(selectedSession.id)}
-                  />
-                </div>
-              </div>
-            </li>
-            {sessions.map((session) => (
-              <li key={session.id}>
-                <button
-                  className={`flex justify-center items-center space-x-6 hover:text-white focus:bg-gray-700 focus:text-white hover:bg-gray-700 text-gray-400 rounded px-3 py-2 w-52 ${
-                    selectedSession.id === session.id
-                      ? "bg-gray-700 text-white"
-                      : ""
-                  }`}
-                  onClick={() => handleLoadSession(session)}
-                >
-                  {new Date(session.createdAt).toLocaleDateString()}
-                </button>
-              </li>
-            ))}
-          </ul>
-        );
-      }
-
-      function NavBar() {
-        const { t } = ReactI18next.useTranslation();
-        const [detailsOpen, setDetailsOpen] = React.useState(false);
-        const detailsRef = React.useRef(null);
-
-        React.useEffect(() => {
-          const detailsElement = detailsRef.current;
-
-          const handleToggle = () => {
-            setDetailsOpen(detailsElement.open); // Set state based on native open attribute
-          };
-
-          detailsElement.addEventListener("toggle", handleToggle);
-
-          return () => {
-            detailsElement.removeEventListener("toggle", handleToggle);
-          };
-        }, []);
-
-        return (
-          <div className="navbar bg-base-100 text-slate-800">
-            <div className="navbar-start">
-              <ul className="menu menu-horizontal px-1">
-                <li>
-                  <details ref={detailsRef} open={detailsOpen}>
-                    <summary>
-                      <IconButton iconPath={ICON_PATHS.calendar} />
-                      {t("sessions")}
-                    </summary>
-
-                    <Sessions closeDetails={() => setDetailsOpen(false)} />
-                  </details>
-                </li>
-              </ul>
-            </div>
-            <div className="navbar-center">
-              <a
-                className="text-5xl "
-                style={{ fontFamily: "Chicle, cursive" }}
-              >
-                Repartija
-              </a>
-            </div>
-            <div className="navbar-end ">
-              <LanguageSwitcher />
-            </div>
-          </div>
-        );
-      }
-
-      function MobileApp() {
-        return (
-          <div className="p-4">
-            <CustomForm />
-            <ItemsList />
-            <Results />
-          </div>
-        );
-      }
-
-      function MockupPhone({ children }) {
-        return (
-          <div className="mockup-phone hidden md:inline mt-4">
-            <div className="camera"></div>
-            <div className="display">
-              <div className="artboard artboard-demo phone-1 bg-cover bg-center bg-no-repeat bg-[url('./dinner.jpg')]">
-                <div className="w-full h-full bg-black bg-opacity-50 text-white">
-                  {children}
-                </div>
-              </div>
-            </div>
-          </div>
-        );
-      }
-
-      function LandingContent() {
-        const { t } = ReactI18next.useTranslation();
-        return (
-          <div className="hidden md:inline p-4">
-            <p className="mb-1 text-base font-medium md:text-xl">
-              {t("solution")}
-            </p>
-            <h2 className="mb-6 text-3xl font-bold md:leading-tight md:text-4xl md:mb-4">
-              {t("subtitle")}
-            </h2>
-            <p className="mb-6 text-sm font-semibold lg:text-base">
-              {t("description")}
-            </p>
-            <div className="flex flex-col mb-2 space-x-0 space-y-2 sm:flex-row sm:space-x-2 sm:space-y-0">
-              <a
-                href="#"
-                className="w-full shadow btn btn-primary btn-lg sm:w-auto"
-              >
-                {t("getStarted")}
-              </a>
-              <a href="#" className="w-full btn btn-link btn-lg sm:w-auto">
-                {t("scheduleDemo")}
-              </a>
-            </div>
-          </div>
-        );
-      }
-
-      function ItemsList() {
-        const { submissions, removeSubmission } = React.useContext(AppContext);
-        return (
-          <div className="mt-4 space-y-2">
-            {submissions.map((item) => (
-              <ListItem
-                key={item.id}
-                item={item}
-                removeItem={removeSubmission}
-              />
-            ))}
-          </div>
-        );
-      }
-
-      function ListItem({ item, removeItem }) {
-        return (
-          <div className="flex items-center btn btn-sm bg-green-500 bg-opacity-50 text-white border-success">
-            <span className="flex-grow">
-              {item.name}: ${item.pay}
-            </span>
-            <IconButton
-              iconPath={ICON_PATHS.trash}
-              onClick={() => removeItem(item.id)}
-            />
-          </div>
-        );
-      }
-
-      function CustomForm() {
-        const { t } = ReactI18next.useTranslation();
-        const defaultFormData = { name: "", pay: "", done: true };
-        const [formData, setFormData] = React.useState(defaultFormData);
-        const [error, setError] = React.useState(null);
-        const { setSubmissions } = React.useContext(AppContext);
-
-        const handleChange = (e) => {
-          const { name, value } = e.target;
-
-          if (name === "pay") {
-            // Ensure value is a number and within expected range if needed
-            let sanitizedValue = parseFloat(value);
-            if (isNaN(sanitizedValue)) {
-              sanitizedValue = 0; // or handle this situation accordingly
-            }
-
-            setFormData((prevData) => ({
-              ...prevData,
-              [name]: sanitizedValue,
-            }));
-          } else {
-            setFormData((prevData) => ({ ...prevData, [name]: value }));
-          }
-        };
-
-        const handleSubmit = (e) => {
-          e.preventDefault();
-
-          if (formData.name.trim() === "") {
-            setError("Name field is required");
-            return;
-          }
-
-          const newSubmission = { id: Date.now(), ...formData };
-          setSubmissions((prevSubmissions) => [
-            ...prevSubmissions,
-            newSubmission,
-          ]);
-          setFormData(defaultFormData);
-          setError(null);
-        };
-
-        return (
-          <div className="mx-auto mt-1">
-            <h2 className="text-xl">{t("submitData")}</h2>
-            <form onSubmit={handleSubmit} className="space-y-4 text-slate-800">
-              <div className="form-control">
-                <input
-                  type="text"
-                  name="name"
-                  value={formData.name}
-                  onChange={handleChange}
-                  placeholder={t("name")}
-                  className="input input-bordered"
-                />
-              </div>
-
-              <div className="form-control">
-                <input
-                  type="number"
-                  name="pay"
-                  value={formData.pay}
-                  onChange={handleChange}
-                  placeholder={t("pay")}
-                  className="input input-bordered"
-                />
-              </div>
-
-              <div className="form-control mt-4">
-                <button className="btn btn-primary">{t("submit")}</button>
-              </div>
-              {error && <p className="text-red-500 mt-2">{error}</p>}
-            </form>
-          </div>
-        );
-      }
-
-      // Results component
-      const Results = () => {
-        const { t } = ReactI18next.useTranslation();
-        const [total, setTotal] = React.useState(0);
-        const [individualPayment, setIndividualPayment] = React.useState(0);
-        const [result, setResult] = React.useState([]);
-        const { submissions: payments } = React.useContext(AppContext);
-
-        React.useEffect(() => {
-          const { total, individualPayment, result } = calculate();
-          setTotal(total);
-          setIndividualPayment(individualPayment);
-          setResult(result);
-        }, [payments]);
-
-        function calculate() {
-          const output = { total: 0, individualPayment: 0, result: [] };
-          const balance = arrangeInitialConditions(output);
-          const { creditors, debtors } = divideList(balance);
-          output.result = creditors.map((creditor) => {
-            debtors.forEach((debtor) => {
-              if (debtor.pay > 0 && creditor.pay < 0) {
-                const payment = getDebtorPayment(debtor, creditor.pay);
-                debtor.pay -= payment;
-                creditor.pay += payment;
-                composeOutputObj(creditor, debtor, payment);
-              }
-            });
-            return creditor;
-          });
-
-          return output;
-        }
-
-        function arrangeInitialConditions(output) {
-          let payers = payments.filter((payment) => payment.done);
-          output.total = payers.reduce(
-            (acc, curr) => acc + (Number(curr.pay) || 0),
-            0
-          );
-          output.individualPayment = +(output.total / payers.length);
-          const res = payers.map((payment) => ({
-            ...payment,
-            pay: output.individualPayment - (Number(payment.pay) || 0),
-          }));
-          return res;
-        }
-
-        function divideList(balance) {
-          return {
-            creditors: balance
-              .filter((entry) => entry.pay < 0)
-              .sort((a, b) => (a.pay > b.pay ? 1 : -1)),
-            debtors: balance
-              .filter((entry) => entry.pay >= 0)
-              .sort((a, b) => (a.pay > b.pay ? -1 : 1)),
-          };
-        }
-
-        function getDebtorPayment(debtor, yetToPay) {
-          const willCreditorStillOwed = debtor.pay + yetToPay < 0;
-          return willCreditorStillOwed ? debtor.pay : yetToPay * -1;
-        }
-
-        function composeOutputObj(creditor, debtor, payment) {
-          const obj = { payment: +payment.toFixed(2), ...debtor };
-          if (creditor.hasOwnProperty("debtors")) {
-            creditor.debtors.push(obj);
-          } else {
-            creditor.debtors = [obj];
-          }
-        }
-
-        return (
-          <div className="mt-4">
-            <h2 className="text-xl">{t("result")}:</h2>
-            <div className="p-4">
-              <p className="text-lg">
-                {t("total")}: $
-                <em className="text-xl text-emerald-300 font-bold">
-                  {isNaN(total) ? "Error in Total" : total}
-                </em>
-              </p>
-              <p className="">
-                {t("individualPayment")}: $
-                <em className="text-xl text-emerald-300 font-bold">
-                  {isNaN(individualPayment) ? "0" : individualPayment}
-                </em>
-              </p>
-
-              {result.map((item) => (
-                <div key={item.id} className="mt-4">
-                  {t("to")}
-                  <em className="text-xl text-emerald-300 font-bold">
-                    {item.name},
-                  </em>
-                  {t("thesePPLMust")}
-                  {item.debtors.length === 1 ? "" : "n"} pagar
-                  {item.debtors.map((d) => (
-                    <div key={d.id} className="ms-2 mt-1">
-                      {d.name + ": $"}
-                      <em className="text-xl text-emerald-300 font-bold">
-                        {d.payment}
-                      </em>
-                    </div>
-                  ))}
-                </div>
-              ))}
-            </div>
-          </div>
-        );
-      };
-
-      function App() {
-        return (
-          <AppProvider>
-            <div className="min-h-screen t-0 flex flex-col text-white bg-gradient-to-r from-violet-500 to-fuchsia-500">
-              <NavBar />
-              <div className="grid items-center grid-cols-1 gap-4 mx-auto max-w-7xl lg:grid-cols-2 xl:grid-cols-3 ">
-                <LandingContent />
-                <MockupPhone>
-                  <MobileApp />
-                </MockupPhone>
-              </div>
-              <div className="md:hidden bg-cover bg-center bg-no-repeat bg-[url('./dinner.jpg')]">
-                <div className="min-h-screen bg-black bg-opacity-50">
-                  <MobileApp />
-                </div>
-              </div>
-            </div>
-          </AppProvider>
         );
       }
 
