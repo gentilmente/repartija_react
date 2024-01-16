@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Repartija</title>
+    <!-- DaisyUI CSS (from CDN) -->
+    <link
+      href="https://cdn.jsdelivr.net/npm/daisyui@3.7.6/dist/full.css"
+      rel="stylesheet"
+      type="text/css"
+    />
+    <script src="https://cdn.tailwindcss.com"></script>
+  </head>
+
+  <body>
+    <div id="root"></div>
+    <!-- React and ReactDOM -->
+    <script
+      crossorigin
+      src="https://unpkg.com/react@18/umd/react.development.js"
+    ></script>
+    <script
+      crossorigin
+      src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"
+    ></script>
+    <!-- Babel compiler for JSX -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/6.26.0/babel.min.js"></script>
+
+    <script type="text/babel">
+      // Form component
+      function Form({ payments, setPayments }) {
+        const [name, setName] = React.useState("");
+        const [pay, setPay] = React.useState("");
+
+        function add() {
+          event.preventDefault();
+          if (name) {
+            let uid = payments.length + 1;
+            const payment = {
+              id: uid++,
+              done: false,
+              name: name,
+              pay: isNaN(pay) || pay === "" ? 0 : parseFloat(pay),
+            };
+            setPayments([payment, ...payments]);
+            setName("");
+            setPay("");
+          }
+        }
+
+        return (
+          <form
+            name="form"
+            id="myForm"
+            onSubmit={add}
+            className="space-y-4 text-slate-800"
+          >
+            <input
+              name="name"
+              type="text"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring focus:ring-indigo-500 focus:border-indigo-500"
+              placeholder="Nombre"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+            />
+            <input
+              name="payment"
+              type="number"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring focus:ring-indigo-500 focus:border-indigo-500"
+              placeholder="¿Cuánto gastó?"
+              value={pay}
+              onChange={(e) => setPay(e.target.value)}
+            />
+            <button
+              type="submit"
+              className="w-full px-4 py-2 text-white bg-indigo-500 rounded-lg hover:bg-indigo-600 focus:ring focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-gray-100 focus:outline-none"
+            >
+              <span>Agregar al listado</span>
+            </button>
+          </form>
+        );
+      }
+
+      // Results component
+      const Results = ({ payments }) => {
+        const { total, individualPayment, result } = calculate();
+
+        function calculate() {
+          const output = { total: 0, individualPayment: 0, result: [] };
+          const balance = arrangeInitialConditions(output);
+          const { creditors, debtors } = devideList(balance);
+          output.result = creditors.map((creditor) => {
+            debtors.forEach((debtor) => {
+              if (debtor.pay > 0 && creditor.pay < 0) {
+                const payment = getDebtorPayment(debtor, creditor.pay);
+                debtor.pay -= payment;
+                creditor.pay += payment;
+                composeOutputObj(creditor, debtor, payment);
+              }
+            });
+            return creditor;
+          });
+
+          return output;
+        }
+
+        function arrangeInitialConditions(output) {
+          let payers = payments.filter((payment) => payment.done);
+          output.total = payers.reduce(
+            (acc, curr) => acc + +(curr.pay || 0).toFixed(2),
+            0
+          );
+          output.individualPayment = +(output.total / payers.length).toFixed(2);
+          const res = payers.map((payment) => ({
+            ...payment,
+            pay: output.individualPayment - payment.pay,
+          }));
+          return res;
+        }
+
+        function devideList(balance) {
+          return {
+            creditors: balance
+              .filter((entry) => entry.pay < 0)
+              .sort((a, b) => (a.pay > b.pay ? 1 : -1)),
+            debtors: balance
+              .filter((entry) => entry.pay >= 0)
+              .sort((a, b) => (a.pay > b.pay ? -1 : 1)),
+          };
+        }
+
+        function getDebtorPayment(debtor, yetToPay) {
+          const willCreditorStillOwed = debtor.pay + yetToPay < 0;
+          return willCreditorStillOwed ? debtor.pay : yetToPay * -1;
+        }
+
+        function composeOutputObj(creditor, debtor, payment) {
+          const obj = { payment: +payment.toFixed(2), ...debtor };
+          if (creditor.hasOwnProperty("debtors")) {
+            creditor.debtors.push(obj);
+          } else {
+            creditor.debtors = [obj];
+          }
+        }
+
+        return (
+          <div className="">
+            <h2 className="text-xl font-semibold">Resultado:</h2>
+            <div className="p-4">
+              <p className="">
+                total: $<em>{total}</em>
+              </p>
+              <p className="">
+                pago individual: $<em>{individualPayment}</em>
+              </p>
+
+              {result.map((item) => (
+                <div key={item.id} className="mt-4">
+                  A <em>{item.name}</em>, le debe
+                  {item.debtors.length === 1 ? "" : "n"} pagar
+                  {item.debtors.map((d) => (
+                    <div key={d.id} className="mt-2">
+                      {d.name + ": $"}
+                      <em>{d.payment}</em>
+                    </div>
+                  ))}
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      };
+
+      // List component
+      function List({ payments, setPayments }) {
+        const handleCheckboxChange = (paymentId) => {
+          const paymentIndex = payments.findIndex(
+            (payment) => payment.id === paymentId
+          );
+
+          if (paymentIndex !== -1) {
+            const updatedPayments = [...payments];
+            updatedPayments[paymentIndex].done =
+              !updatedPayments[paymentIndex].done;
+            setPayments(updatedPayments);
+          }
+        };
+
+        function remove(payment) {
+          setPayments(payments.filter((t) => t !== payment));
+        }
+
+        return (
+          <div className=" grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <h2 className="text-xl font-semibold mb-2">Vinieron</h2>
+              {payments !== null &&
+                payments
+                  .filter((t) => !t.done)
+                  .map((payment) => (
+                    <PaymentListItem
+                      key={payment.id}
+                      payment={payment}
+                      onToggle={handleCheckboxChange}
+                      onRemove={remove}
+                    />
+                  ))}
+            </div>
+
+            <div className="space-y-2">
+              <h2 className="text-xl font-semibold mb-2">Pagan</h2>
+              {payments !== null &&
+                payments
+                  .filter((t) => t.done)
+                  .map((payment) => (
+                    <PaymentListItem
+                      key={payment.id}
+                      payment={payment}
+                      onToggle={handleCheckboxChange}
+                      onRemove={remove}
+                    />
+                  ))}
+            </div>
+          </div>
+        );
+      }
+
+      // Payment List Item
+      function PaymentListItem({ payment, onToggle, onRemove }) {
+        return (
+          <div
+            className={`flex items-center btn btn-sm ${
+              payment.done
+                ? "bg-green-500 bg-opacity-50 text-white border-success"
+                : "bg-black bg-opacity-50 text-white "
+            }`}
+          >
+            {/* Checkbox and Content */}
+            <label className="flex-grow text-light-700 flex items-center space-x-2 truncate">
+              <input
+                type="checkbox"
+                className="hidden"
+                id={payment.id}
+                checked={payment.done}
+                onChange={() => onToggle(payment.id)}
+              />
+              <span className="truncate">
+                {payment.name + ": " + payment.pay}
+              </span>
+            </label>
+
+            {/* Trash Button */}
+            <button
+              className="hover:text-indigo-600 focus:outline-none flex-shrink-0"
+              onClick={() => onRemove(payment)}
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                strokeWidth={1.5}
+                stroke="currentColor"
+                className="w-6 h-6"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0"
+                />
+              </svg>
+            </button>
+          </div>
+        );
+      }
+
+      // Main App
+      function App() {
+        const [payments, setPayments] = React.useState([
+          { id: 1, done: true, name: "Noemi", pay: 40 },
+          { id: 2, done: false, name: "Leti", pay: 600 },
+          { id: 3, done: false, name: "Clarita", pay: 150 },
+          { id: 4, done: false, name: "Taio", pay: 0 },
+          { id: 5, done: false, name: "Juana", pay: 0 },
+          { id: 6, done: true, name: "Gisela", pay: 200 },
+          { id: 7, done: true, name: "Eze", pay: 0 },
+        ]);
+
+        React.useLayoutEffect(() => {
+          document.body.classList.add("bg-cover", "bg-center", "bg-no-repeat");
+          document.body.style.backgroundImage = `url(./dinner.jpg)`;
+          return () => {
+            // Cleanup, if you want to remove the styling when the component unmounts
+            document.body.style.backgroundImage = "";
+          };
+        }, []);
+
+        return (
+          <div className="container p-4 text-white min-h-screen bg-black bg-opacity-50">
+            <Form payments={payments} setPayments={setPayments} />
+            <List payments={payments} setPayments={setPayments} />
+
+            {payments !== null && payments.filter((p) => p.done).length > 0 && (
+              <Results payments={payments} />
+            )}
+          </div>
+        );
+      }
+
+      // Render the App component to the DOM
+      const container = document.getElementById("root");
+      const root = ReactDOM.createRoot(container);
+
+      root.render(
+        <React.StrictMode>
+          <App />
+        </React.StrictMode>
+      );
+    </script>
+  </body>
+</html>

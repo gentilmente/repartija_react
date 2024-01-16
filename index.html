@@ -4,6 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Repartija</title>
+
     <!-- DaisyUI CSS (from CDN) -->
     <link
       href="https://cdn.jsdelivr.net/npm/daisyui@3.7.6/dist/full.css"
@@ -11,6 +12,12 @@
       type="text/css"
     />
     <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Chicle&display=swap"
+      rel="stylesheet"
+    />
   </head>
 
   <body>
@@ -24,72 +31,154 @@
       crossorigin
       src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"
     ></script>
+
+    <!-- i18next and react-i18next CDN links -->
+    <script src="https://cdn.jsdelivr.net/npm/i18next@23.4.4/i18next.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/react-i18next@13.1.2/react-i18next.min.js"></script>
+
+    <script src="https://cdn.jsdelivr.net/npm/i18next-browser-languagedetector@7.1.0/i18nextBrowserLanguageDetector.min.js"></script>
     <!-- Babel compiler for JSX -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/6.26.0/babel.min.js"></script>
 
     <script type="text/babel">
-      // Form component
-      function Form({ payments, setPayments }) {
-        const [name, setName] = React.useState("");
-        const [pay, setPay] = React.useState("");
+      i18next
+        .use(ReactI18next.initReactI18next)
+        .use(i18nextBrowserLanguageDetector)
+        .init({
+          resources: {
+            en: {
+              translation: {
+                sessions: "Sessions",
+                submitData: "Submit Your Data",
+                name: "Name",
+                pay: "Pay",
+                submit: "Submit",
+                result: "Result",
+                total: "Total:",
+                individualPayment: "Individual Payment",
+                to: "To ",
+                thesePPLMust: " these people must",
+                owes: "owes:",
+                solution: "The Ultimate Bill Splitting Solution",
+                description: `Gone are the days of complex calculations, awkward conversations,
+                              and IOUs. With Repartija, splitting the bill is as easy as a
+                              single tap. Whether you're dining out, traveling with friends, or
+                              sharing household expenses, we've got you covered.`,
+                subtitle: "No more drunks doing math",
+                getStarted: "Get Started",
+                scheduleDemo: "Schedule a demo",
+              },
+            },
+            es: {
+              translation: {
+                sessions: "Sesiones",
+                submitData: "Enviar Datos",
+                name: "Nombre",
+                pay: "Pago",
+                submit: "Enviar",
+                result: "Resultado",
+                total: "Total:",
+                individualPayment: "Pago Individual",
+                to: "A ",
+                thesePPLMust: " le debe",
+                owes: "debe:",
+                solution: "La solución definitiva para dividir la cuenta",
+                description: `Atrás quedaron los días de cálculos complejos,
+                conversaciones incómodas y pagarés. Con Repartija,
+                dividir la factura es tan fácil como un solo toque.
+                Ya sea que salga a cenar, viaje con amigos o comparta los gastos del hogar,
+                lo tenemos cubierto.`,
+                subtitle: "No mas ebrios haciendo cuentas",
+                getStarted: "Empezar",
+                scheduleDemo: "Programar una demo",
+              },
+            },
+          },
+          fallbackLng: "en",
+          interpolation: {
+            escapeValue: false, // React already escapes values.
+          },
+        });
 
-        function add() {
-          event.preventDefault();
-          if (name) {
-            let uid = payments.length + 1;
-            const payment = {
-              id: uid++,
-              done: false,
-              name: name,
-              pay: isNaN(pay) || pay === "" ? 0 : parseFloat(pay),
-            };
-            setPayments([payment, ...payments]);
-            setName("");
-            setPay("");
-          }
-        }
+      function LanguageSwitcher() {
+        const { i18n } = ReactI18next.useTranslation();
+        const changeLanguage = (lng) => {
+          i18n.changeLanguage(lng);
+        };
+        const isActiveLanguage = (lang) => {
+          return i18n.language === lang ? "active" : "";
+        };
 
         return (
-          <form
-            name="form"
-            id="myForm"
-            onSubmit={add}
-            className="space-y-4 text-slate-800"
-          >
-            <input
-              name="name"
-              type="text"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring focus:ring-indigo-500 focus:border-indigo-500"
-              placeholder="Nombre"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-            />
-            <input
-              name="payment"
-              type="number"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring focus:ring-indigo-500 focus:border-indigo-500"
-              placeholder="¿Cuánto gastó?"
-              value={pay}
-              onChange={(e) => setPay(e.target.value)}
-            />
-            <button
-              type="submit"
-              className="w-full px-4 py-2 text-white bg-indigo-500 rounded-lg hover:bg-indigo-600 focus:ring focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-gray-100 focus:outline-none"
-            >
-              <span>Agregar al listado</span>
-            </button>
-          </form>
+          <div title="Change Language" className="dropdown dropdown-end">
+            <div tabIndex="0" className="btn btn-ghost normal-case">
+              <IconButton iconPath={ICON_PATHS.lang} />
+              <IconButton iconPath={ICON_PATHS.chevron} />
+            </div>
+            <div className="dropdown-content bg-base-200 text-base-content rounded-box top-px mt-16 w-56 overflow-y-auto shadow">
+              <ul className="menu menu-sm gap-1" tabIndex="0">
+                <li>
+                  <button
+                    className={isActiveLanguage("en")}
+                    onClick={() => changeLanguage("en")}
+                  >
+                    <span className="badge badge-sm badge-outline !pl-1.5 !pr-1 pt-px font-mono !text-[.6rem] font-bold tracking-widest opacity-50">
+                      EN
+                    </span>
+                    English
+                  </button>
+                </li>
+                <li>
+                  <button
+                    className={isActiveLanguage("es")}
+                    onClick={() => changeLanguage("es")}
+                  >
+                    <span className="badge badge-sm badge-outline !pl-1.5 !pr-1 pt-px font-mono !text-[.6rem] font-bold tracking-widest opacity-50">
+                      ES
+                    </span>
+                    Español
+                  </button>
+                </li>
+                <li>
+                  <button>
+                    <span className="badge badge-sm badge-outline !pl-1.5 !pr-1 pt-px font-mono !text-[.6rem] font-bold tracking-widest opacity-50">
+                      FR
+                    </span>
+                    Français
+                  </button>
+                </li>
+                <li>
+                  <button>
+                    <span className="badge badge-sm badge-outline !pl-1.5 !pr-1 pt-px font-mono !text-[.6rem] font-bold tracking-widest opacity-50">
+                      PT
+                    </span>
+                    Português
+                  </button>
+                </li>
+              </ul>
+            </div>
+          </div>
         );
       }
 
       // Results component
       const Results = ({ payments }) => {
-        const { total, individualPayment, result } = calculate();
+        const { t } = ReactI18next.useTranslation();
+        const [total, setTotal] = React.useState(0);
+        const [individualPayment, setIndividualPayment] = React.useState(0);
+        const [result, setResult] = React.useState([]);
+
+        React.useEffect(() => {
+          const { total, individualPayment, result } = calculate();
+          setTotal(total);
+          setIndividualPayment(individualPayment);
+          setResult(result);
+        }, [payments]);
 
         function calculate() {
           const output = { total: 0, individualPayment: 0, result: [] };
           const balance = arrangeInitialConditions(output);
-          const { creditors, debtors } = devideList(balance);
+          const { creditors, debtors } = divideList(balance);
           output.result = creditors.map((creditor) => {
             debtors.forEach((debtor) => {
               if (debtor.pay > 0 && creditor.pay < 0) {
@@ -108,18 +197,18 @@
         function arrangeInitialConditions(output) {
           let payers = payments.filter((payment) => payment.done);
           output.total = payers.reduce(
-            (acc, curr) => acc + +(curr.pay || 0).toFixed(2),
+            (acc, curr) => acc + (Number(curr.pay) || 0),
             0
           );
-          output.individualPayment = +(output.total / payers.length).toFixed(2);
+          output.individualPayment = +(output.total / payers.length);
           const res = payers.map((payment) => ({
             ...payment,
-            pay: output.individualPayment - payment.pay,
+            pay: output.individualPayment - (Number(payment.pay) || 0),
           }));
           return res;
         }
 
-        function devideList(balance) {
+        function divideList(balance) {
           return {
             creditors: balance
               .filter((entry) => entry.pay < 0)
@@ -145,24 +234,36 @@
         }
 
         return (
-          <div className="">
-            <h2 className="text-xl font-semibold">Resultado:</h2>
+          <div className="mt-4">
+            <h2 className="text-xl">{t("result")}:</h2>
             <div className="p-4">
-              <p className="">
-                total: $<em>{total}</em>
+              <p className="text-lg">
+                {t("total")}: $
+                <em className="text-xl text-emerald-300 font-bold">
+                  {isNaN(total) ? "Error in Total" : total}
+                </em>
               </p>
               <p className="">
-                pago individual: $<em>{individualPayment}</em>
+                {t("individualPayment")}: $
+                <em className="text-xl text-emerald-300 font-bold">
+                  {isNaN(individualPayment) ? "0" : individualPayment}
+                </em>
               </p>
 
               {result.map((item) => (
                 <div key={item.id} className="mt-4">
-                  A <em>{item.name}</em>, le debe
+                  {t("to")}
+                  <em className="text-xl text-emerald-300 font-bold">
+                    {item.name},
+                  </em>
+                  {t("thesePPLMust")}
                   {item.debtors.length === 1 ? "" : "n"} pagar
                   {item.debtors.map((d) => (
-                    <div key={d.id} className="mt-2">
+                    <div key={d.id} className="ms-2 mt-1">
                       {d.name + ": $"}
-                      <em>{d.payment}</em>
+                      <em className="text-xl text-emerald-300 font-bold">
+                        {d.payment}
+                      </em>
                     </div>
                   ))}
                 </div>
@@ -172,137 +273,456 @@
         );
       };
 
-      // List component
-      function List({ payments, setPayments }) {
-        const handleCheckboxChange = (paymentId) => {
-          const paymentIndex = payments.findIndex(
-            (payment) => payment.id === paymentId
-          );
+      function IconButton({ onClick, iconPath }) {
+        return (
+          <button onClick={onClick}>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              strokeWidth={1.5}
+              stroke="currentColor"
+              className="w-6 h-6"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" d={iconPath} />
+            </svg>
+          </button>
+        );
+      }
 
-          if (paymentIndex !== -1) {
-            const updatedPayments = [...payments];
-            updatedPayments[paymentIndex].done =
-              !updatedPayments[paymentIndex].done;
-            setPayments(updatedPayments);
-          }
+      const ICON_PATHS = {
+        plus: "M12 4.5v15m7.5-7.5h-15",
+        trash:
+          "M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0",
+        calendar:
+          "M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5m-9-6h.008v.008H12v-.008zM12 15h.008v.008H12V15zm0 2.25h.008v.008H12v-.008zM9.75 15h.008v.008H9.75V15zm0 2.25h.008v.008H9.75v-.008zM7.5 15h.008v.008H7.5V15zm0 2.25h.008v.008H7.5v-.008zm6.75-4.5h.008v.008h-.008v-.008zm0 2.25h.008v.008h-.008V15zm0 2.25h.008v.008h-.008v-.008zm2.25-4.5h.008v.008H16.5v-.008zm0 2.25h.008v.008H16.5V15z",
+        lang: "M10.5 21l5.25-11.25L21 21m-9-3h7.5M3 5.621a48.474 48.474 0 016-.371m0 0c1.12 0 2.233.038 3.334.114M9 5.25V3m3.334 2.364C11.176 10.658 7.69 15.08 3 17.502m9.334-12.138c.896.061 1.785.147 2.666.257m-4.589 8.495a18.023 18.023 0 01-3.827-5.802",
+        chevron: "M19.5 8.25l-7.5 7.5-7.5-7.5",
+      };
+
+      function Sessions({
+        createSession,
+        removeSession,
+        sessions,
+        loadSession,
+        menuStyles,
+        selectedSession,
+        closeDetails,
+      }) {
+        const handleLoadSession = (session) => {
+          loadSession(session);
+          closeDetails(); // Close the details dropdown when a session is loaded
         };
 
-        function remove(payment) {
-          setPayments(payments.filter((t) => t !== payment));
-        }
+        const handleCreateSession = () => {
+          createSession();
+          closeDetails(); // Close the details dropdown when a session is loaded
+        };
 
+        const handleRemoveSession = (sessionId) => {
+          removeSession(sessionId);
+          closeDetails(); // Close the details dropdown when a session is loaded
+        };
         return (
-          <div className=" grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <h2 className="text-xl font-semibold mb-2">Vinieron</h2>
-              {payments !== null &&
-                payments
-                  .filter((t) => !t.done)
-                  .map((payment) => (
-                    <PaymentListItem
-                      key={payment.id}
-                      payment={payment}
-                      onToggle={handleCheckboxChange}
-                      onRemove={remove}
-                    />
-                  ))}
-            </div>
+          <ul className={`${menuStyles}`}>
+            <li>
+              <div className="flex justify-evenly bg-base-200">
+                <div className="tooltip tooltip-left" data-tip="add">
+                  <IconButton
+                    iconPath={ICON_PATHS.plus}
+                    onClick={handleCreateSession}
+                  />
+                </div>
 
-            <div className="space-y-2">
-              <h2 className="text-xl font-semibold mb-2">Pagan</h2>
-              {payments !== null &&
-                payments
-                  .filter((t) => t.done)
-                  .map((payment) => (
-                    <PaymentListItem
-                      key={payment.id}
-                      payment={payment}
-                      onToggle={handleCheckboxChange}
-                      onRemove={remove}
-                    />
-                  ))}
-            </div>
-          </div>
+                <div className="tooltip tooltip-right" data-tip="remove">
+                  <IconButton
+                    iconPath={ICON_PATHS.trash}
+                    onClick={() => handleRemoveSession(selectedSession.id)}
+                  />
+                </div>
+              </div>
+            </li>
+            {sessions.map((session) => (
+              <li key={session.id}>
+                <button
+                  className={`flex justify-center items-center space-x-6 hover:text-white focus:bg-gray-700 focus:text-white hover:bg-gray-700 text-gray-400 rounded px-3 py-2 w-52 ${
+                    selectedSession.id === session.id
+                      ? "bg-gray-700 text-white"
+                      : ""
+                  }`}
+                  onClick={() => handleLoadSession(session)}
+                >
+                  {new Date(session.createdAt).toLocaleDateString()}
+                </button>
+              </li>
+            ))}
+          </ul>
         );
       }
 
-      // Payment List Item
-      function PaymentListItem({ payment, onToggle, onRemove }) {
-        return (
-          <div
-            className={`flex items-center btn btn-sm ${
-              payment.done
-                ? "bg-green-500 bg-opacity-50 text-white border-success"
-                : "bg-black bg-opacity-50 text-white "
-            }`}
-          >
-            {/* Checkbox and Content */}
-            <label className="flex-grow text-light-700 flex items-center space-x-2 truncate">
-              <input
-                type="checkbox"
-                className="hidden"
-                id={payment.id}
-                checked={payment.done}
-                onChange={() => onToggle(payment.id)}
-              />
-              <span className="truncate">
-                {payment.name + ": " + payment.pay}
-              </span>
-            </label>
+      function NavBar({ sessionProps }) {
+        const { t } = ReactI18next.useTranslation();
+        const [detailsOpen, setDetailsOpen] = React.useState(false);
+        const detailsRef = React.useRef(null);
 
-            {/* Trash Button */}
-            <button
-              className="hover:text-indigo-600 focus:outline-none flex-shrink-0"
-              onClick={() => onRemove(payment)}
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-                strokeWidth={1.5}
-                stroke="currentColor"
-                className="w-6 h-6"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0"
-                />
-              </svg>
-            </button>
-          </div>
-        );
-      }
+        React.useEffect(() => {
+          const detailsElement = detailsRef.current;
 
-      // Main App
-      function App() {
-        const [payments, setPayments] = React.useState([
-          { id: 1, done: true, name: "Noemi", pay: 40 },
-          { id: 2, done: false, name: "Leti", pay: 600 },
-          { id: 3, done: false, name: "Clarita", pay: 150 },
-          { id: 4, done: false, name: "Taio", pay: 0 },
-          { id: 5, done: false, name: "Juana", pay: 0 },
-          { id: 6, done: true, name: "Gisela", pay: 200 },
-          { id: 7, done: true, name: "Eze", pay: 0 },
-        ]);
+          const handleToggle = () => {
+            setDetailsOpen(detailsElement.open); // Set state based on native open attribute
+          };
 
-        React.useLayoutEffect(() => {
-          document.body.classList.add("bg-cover", "bg-center", "bg-no-repeat");
-          document.body.style.backgroundImage = `url(./dinner.jpg)`;
+          detailsElement.addEventListener("toggle", handleToggle);
+
           return () => {
-            // Cleanup, if you want to remove the styling when the component unmounts
-            document.body.style.backgroundImage = "";
+            detailsElement.removeEventListener("toggle", handleToggle);
           };
         }, []);
 
         return (
-          <div className="container p-4 text-white min-h-screen bg-black bg-opacity-50">
-            <Form payments={payments} setPayments={setPayments} />
-            <List payments={payments} setPayments={setPayments} />
+          <div className="navbar bg-base-100 text-slate-800">
+            <div className="navbar-start">
+              <ul className="menu menu-horizontal px-1">
+                <li>
+                  <details ref={detailsRef} open={detailsOpen}>
+                    <summary>
+                      <IconButton iconPath={ICON_PATHS.calendar} />
+                      {t("sessions")}
+                    </summary>
 
-            {payments !== null && payments.filter((p) => p.done).length > 0 && (
-              <Results payments={payments} />
-            )}
+                    <Sessions
+                      {...sessionProps}
+                      menuStyles="menu px-1"
+                      closeDetails={() => setDetailsOpen(false)}
+                    />
+                  </details>
+                </li>
+              </ul>
+            </div>
+            <div className="navbar-center">
+              <a
+                className="text-5xl "
+                style={{ fontFamily: "Chicle, cursive" }}
+              >
+                Repartija
+              </a>
+            </div>
+            <div className="navbar-end ">
+              <LanguageSwitcher />
+            </div>
+          </div>
+        );
+      }
+
+      function MobileApp(props) {
+        const { formData, handleChange, onSubmit } = props.formProps;
+        const { submissions, removeItem } = props.mobileProps;
+        return (
+          <div className="p-4">
+            <CustomForm
+              formData={formData}
+              handleChange={handleChange}
+              onSubmit={onSubmit}
+            />
+
+            <ItemsList submissions={submissions} removeItem={removeItem} />
+            <Results payments={submissions} />
+          </div>
+        );
+      }
+
+      function MockupPhone({ children }) {
+        return (
+          <div className="mockup-phone hidden md:inline mt-4">
+            <div className="camera"></div>
+            <div className="display">
+              <div className="artboard artboard-demo phone-1 bg-cover bg-center bg-no-repeat bg-[url('./dinner.jpg')]">
+                <div className="w-full h-full bg-black bg-opacity-50 text-white">
+                  {children}
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      }
+
+      function LandingContent() {
+        const { t } = ReactI18next.useTranslation();
+        return (
+          <div className="hidden md:inline p-4">
+            <p className="mb-1 text-base font-medium md:text-xl">
+              {t("solution")}
+            </p>
+            <h2 className="mb-6 text-3xl font-bold md:leading-tight md:text-4xl md:mb-4">
+              {t("subtitle")}
+            </h2>
+            <p className="mb-6 text-sm font-semibold lg:text-base">
+              {t("description")}
+            </p>
+            <div className="flex flex-col mb-2 space-x-0 space-y-2 sm:flex-row sm:space-x-2 sm:space-y-0">
+              <a
+                href="#"
+                className="w-full shadow btn btn-primary btn-lg sm:w-auto"
+              >
+                {t("getStarted")}
+              </a>
+              <a href="#" className="w-full btn btn-link btn-lg sm:w-auto">
+                {t("scheduleDemo")}
+              </a>
+            </div>
+          </div>
+        );
+      }
+
+      function ItemsList({ submissions, removeItem }) {
+        return (
+          <div className="mt-4 space-y-2">
+            {submissions.map((item) => (
+              <ListItem key={item.id} item={item} removeItem={removeItem} />
+            ))}
+          </div>
+        );
+      }
+
+      function ListItem({ item, removeItem }) {
+        return (
+          <div className="flex items-center btn btn-sm bg-green-500 bg-opacity-50 text-white border-success">
+            <span className="flex-grow">
+              {item.name}: ${item.pay}
+            </span>
+            <IconButton
+              iconPath={ICON_PATHS.trash}
+              onClick={() => removeItem(item.id)}
+            />
+          </div>
+        );
+      }
+
+      function CustomForm({
+        onSubmit,
+        formData,
+        setFormData,
+        handleChange,
+        error,
+      }) {
+        const { t } = ReactI18next.useTranslation();
+
+        return (
+          <div className="mx-auto mt-1">
+            <h2 className="text-xl">{t("submitData")}</h2>
+            <form onSubmit={onSubmit} className="space-y-4 text-slate-800">
+              <div className="form-control">
+                <input
+                  type="text"
+                  name="name"
+                  value={formData.name}
+                  onChange={handleChange}
+                  placeholder={t("name")}
+                  className="input input-bordered"
+                />
+              </div>
+
+              <div className="form-control">
+                <input
+                  type="number"
+                  name="pay"
+                  value={formData.pay}
+                  onChange={handleChange}
+                  placeholder={t("pay")}
+                  className="input input-bordered"
+                />
+              </div>
+
+              <div className="form-control mt-4">
+                <button className="btn btn-primary">{t("submit")}</button>
+              </div>
+              {error && <p className="text-red-500 mt-2">{error}</p>}
+            </form>
+          </div>
+        );
+      }
+
+      function App() {
+        const defaultFormData = { name: "", pay: "", done: true };
+        const mockedSessions = React.useRef([
+          {
+            id: 1632501234567,
+            createdAt: new Date(2023, 8, 25).toISOString(),
+            data: [
+              { id: 1, name: "John", pay: 200, done: true },
+              { id: 2, name: "Doe", pay: 100, done: true },
+            ],
+          },
+          {
+            id: 1632587634567,
+            createdAt: new Date(2023, 8, 26).toISOString(),
+            data: [
+              { id: 3, name: "Anna", pay: 50, done: true },
+              { id: 4, name: "Smith", pay: 150, done: true },
+            ],
+          },
+        ]);
+        const [formData, setFormData] = React.useState(defaultFormData);
+        const [submissions, setSubmissions] = React.useState([]);
+        const [error, setError] = React.useState(null);
+        const [sessions, setSessions] = React.useState([]);
+        const [selectedSession, setSelectedSession] = React.useState(null);
+
+        function getSessionsFromLocalStorage() {
+          const sessionsJSON = localStorage.getItem("sessions");
+          return sessionsJSON
+            ? JSON.parse(sessionsJSON)
+            : mockedSessions.current;
+        }
+
+        function saveSessionsToLocalStorage(sessions) {
+          localStorage.setItem("sessions", JSON.stringify(sessions));
+        }
+
+        const updateSessionData = (updatedSessionData) => {
+          const updatedSessions = sessions.map((session) =>
+            session.id === selectedSession.id
+              ? { ...session, data: updatedSessionData }
+              : session
+          );
+          saveSessionsToLocalStorage(updatedSessions);
+          return updatedSessions;
+        };
+
+        React.useEffect(() => {
+          // This will run only once when the component is mounted
+          const sessionsFromStorage = getSessionsFromLocalStorage();
+          setSessions(sessionsFromStorage);
+
+          // If there's a session in storage, select the first one by default
+          if (sessionsFromStorage && sessionsFromStorage.length > 0) {
+            setSelectedSession(sessionsFromStorage[0]);
+            setSubmissions(sessionsFromStorage[0].data);
+          }
+        }, []);
+
+        // When sessions or submissions change, sync to localStorage
+        React.useEffect(() => {
+          if (selectedSession) {
+            const updatedSessions = updateSessionData(submissions);
+            setSessions(updatedSessions);
+          }
+        }, [submissions, selectedSession]);
+
+        const handleChange = (e) => {
+          const { name, value } = e.target;
+
+          if (name === "pay") {
+            // Ensure value is a number and within expected range if needed
+            let sanitizedValue = parseFloat(value);
+            if (isNaN(sanitizedValue)) {
+              sanitizedValue = 0; // or handle this situation accordingly
+            }
+
+            setFormData((prevData) => ({
+              ...prevData,
+              [name]: sanitizedValue,
+            }));
+          } else {
+            setFormData((prevData) => ({ ...prevData, [name]: value }));
+          }
+        };
+
+        const handleSubmit = (e) => {
+          e.preventDefault();
+
+          if (formData.name.trim() === "") {
+            setError("Name field is required");
+            return;
+          }
+
+          const newSubmission = { id: Date.now(), ...formData };
+          setSubmissions((prevSubmissions) => [
+            ...prevSubmissions,
+            newSubmission,
+          ]);
+          setFormData(defaultFormData);
+          setError(null);
+        };
+
+        const createSession = () => {
+          const newSession = {
+            id: Date.now(),
+            createdAt: new Date(),
+            data: [],
+          };
+          setSessions((prevSessions) => [...prevSessions, newSession]);
+          setSelectedSession(newSession);
+          setSubmissions([]);
+        };
+
+        const removeSession = (itemId) => {
+          setSessions((prevSessions) => {
+            const updatedList = prevSessions.filter(
+              (item) => item.id !== itemId
+            );
+
+            // If the removed session is the current selected session
+            if (selectedSession && selectedSession.id === itemId) {
+              const newSelectedSession = updatedList[0] || null; // select the first session or null
+
+              // Ensure this state change takes effect
+              setSelectedSession(newSelectedSession);
+              setSubmissions(
+                (newSelectedSession && newSelectedSession.data) || []
+              );
+            }
+            return updatedList;
+          });
+        };
+
+        const loadSession = (session) => {
+          setSelectedSession(session);
+          setSubmissions(session.data);
+        };
+
+        const removeItem = (itemId) => {
+          const updatedSubmissions = submissions.filter(
+            (item) => item.id !== itemId
+          );
+          setSubmissions(updatedSubmissions);
+        };
+
+        const formProps = {
+          formData: formData,
+          handleChange: handleChange,
+          onSubmit: handleSubmit,
+          setFormData: setFormData,
+          error: error,
+        };
+
+        const mobileProps = {
+          submissions: submissions,
+          removeItem: removeItem,
+        };
+
+        const sessionProps = {
+          sessions: sessions,
+          selectedSession: selectedSession,
+          createSession: createSession,
+          removeSession: removeSession,
+          loadSession: loadSession,
+        };
+
+        return (
+          <div className="min-h-screen t-0 flex flex-col text-white bg-gradient-to-r from-violet-500 to-fuchsia-500">
+            <NavBar sessionProps={sessionProps} />
+            <div className="grid items-center grid-cols-1 gap-4 mx-auto max-w-7xl lg:grid-cols-2 xl:grid-cols-3 ">
+              <LandingContent formProps={formProps} mobileProps={mobileProps} />
+              <MockupPhone>
+                <MobileApp formProps={formProps} mobileProps={mobileProps} />
+              </MockupPhone>
+            </div>
+            <div className="md:hidden bg-cover bg-center bg-no-repeat bg-[url('./dinner.jpg')]">
+              <div className="min-h-screen bg-black bg-opacity-50">
+                <MobileApp formProps={formProps} mobileProps={mobileProps} />
+              </div>
+            </div>
           </div>
         );
       }
@@ -310,7 +730,6 @@
       // Render the App component to the DOM
       const container = document.getElementById("root");
       const root = ReactDOM.createRoot(container);
-
       root.render(
         <React.StrictMode>
           <App />
